@@ -52,7 +52,9 @@ Optionally, also set `USE_EDITOR`, so you can edit *use.json* with `use --conf`,
 
 See `example/use.json` for a sample configuration.
 
+# Caveats
 
+The .source/.bat files can only change environment variables. alias and functions are not honoured.
 
 
 Have fun using!
