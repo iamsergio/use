@@ -52,6 +52,14 @@ Optionally, also set `USE_EDITOR`, so you can edit *use.json* with `use --conf`,
 
 See `example/use.json` for a sample configuration.
 
+# tips
+
+- Use an alias: `alias use=use.py`
+- Add the active targets to your command prompt
+- The json supports: `"rename_yakuake_to" : "foo"`, which renames your current yakuake
+tab to "foo". Just be sure to put `niceties/rename_yatab.sh` in your PATH.
+
+
 # Caveats
 
 The .source/.bat files can only change environment variables. alias and functions are not honoured.
