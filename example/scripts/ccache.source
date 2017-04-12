@@ -1,0 +1,3 @@
+# yay, enabling ccache
+export CCACHE_DIR=/mnt/cache/ccache
+export PATH="/usr/lib/ccache/bin/:$PATH"

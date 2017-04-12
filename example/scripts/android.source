@@ -1,0 +1,8 @@
+export ANDROID_NDK=/data/opt/android/android-ndk-r12b
+export ANDROID_SDK=/data/opt/android/android-sdk
+
+export PATH=$ANDROID_SDK/tools/:$ANDROID_SDK/platform-tools/:$PATH
+#source /etc/profile.d/android-ndk.sh
+#export ANDROID_API_VERSION=android-18
+
+export PATH=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/:$PATH

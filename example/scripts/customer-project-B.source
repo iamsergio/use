@@ -1,0 +1,5 @@
+export PATH=/home/me/customerB/bin:$PATH
+export LD_LIBRARY_PATH=/home/me/customerB/lib/:$LD_LIBRARY_PATH
+export MORE_NEEDED_VARIABLES=1
+export FOO=1
+export BAR=1

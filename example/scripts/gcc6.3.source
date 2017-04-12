@@ -1,0 +1,2 @@
+# yay, adding my gcc 6.3 to path
+export PATH=:/data/mygcc6.3:$PATH
