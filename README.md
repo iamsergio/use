@@ -58,7 +58,8 @@ See `example/use.json` for a sample configuration.
 - Add the active targets to your command prompt
 - The json supports: `"rename_yakuake_to" : "foo"`, which renames your current yakuake
 tab to "foo". Just be sure to put `niceties/rename_yatab.sh` in your PATH.
-
+- When `use` is run it will spawn a new bash, which will then also source .bashrc. If you don't want .bashrc to be sourced (as it might
+smash some of your freshly sourced envs) you can add "rcfile" : "my_alternative_rc.source", in *use.json*, at the top level.
 
 # Caveats
 
