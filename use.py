@@ -6,6 +6,7 @@ import subprocess, string
 _json_config_file = os.getenv('USE_CONFIG_FILE')
 _targets_folder = os.getenv('USE_TARGETS_FOLDER')
 _targets = {}
+_rcfile = ""
 _arguments = sys.argv[1:]
 _configure = False
 _switches = []
@@ -55,6 +56,8 @@ def loadJson():
 
     decoded = json.loads(contents)
 
+    global _rcfile
+
     if "targets" in decoded:
         for target in decoded['targets']:
             t = Target()
@@ -77,6 +80,11 @@ def loadJson():
                 t.hidden = target['hidden']
 
             _targets[t.name] = t
+
+    if "rcfile" in decoded:
+        _rcfile = decoded['rcfile']
+        if not os.path.exists(_rcfile):
+            return False
 
     return True;
 
@@ -150,8 +158,13 @@ def shellForOS():
     return 'bash'
 
 def run_bash(cwd):
-    cmd = shellForOS()
+    cmd = ""
+    if _rcfile and not isWindows(): # Windows sources the alias automatically
+        cmd = "bash --rcfile " + _rcfile
+    else:
+        cmd = shellForOS()
 
+    # print "Running: " + cmd
     old_cwd = ""
     if cwd:
         old_cwd = os.getcwd()
