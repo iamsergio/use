@@ -61,6 +61,20 @@ tab to "foo". Just be sure to put `niceties/rename_yatab.sh` in your PATH.
 - When `use` is run it will spawn a new bash, which will then also source .bashrc. If you don't want .bashrc to be sourced (as it might
 smash some of your freshly sourced envs) you can add "rcfile" : "my_alternative_rc.source", in *use.json*, at the top level.
 
+# Bash auto-completion
+Add this into your `/etc/bash_completion.d/use` file:
+```bash
+function _use_complete()
+{
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    all_switches=`use.py $cur --bash-autocomplete-helper`
+    COMPREPLY=($all_switches)
+    return 0
+}
+
+complete -o default -F _use_complete use
+```
+
 # Caveats
 
 The .source/.bat files can only change environment variables. alias and functions are not honoured.

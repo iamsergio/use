@@ -11,7 +11,7 @@ _arguments = sys.argv[1:]
 _configure = False
 _switches = []
 
-POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h']
+POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper']
 
 if not _json_config_file:
     print "Configuration file not found!\nSet the env variable USE_CONFIG_FILE, point it to your json file.\n"
@@ -255,7 +255,7 @@ def process_arguments():
         if a in POSSIBLE_SWITCHES:
             _arguments.remove(a)
             _switches.append(a)
-        elif a.startswith('--'):
+        elif a.startswith('--') and not '--bash-autocomplete-helper' in _arguments:
             print "Invalid switch: " + a
             sys.exit(-1)
 
@@ -292,6 +292,27 @@ if '--edit' in _switches:
 if '--help' in _switches or '-h' in _switches:
     printUsage()
     sys.exit(0)
+
+if '--bash-autocomplete-helper' in _switches:
+    result = ''
+    wordBeginning = ""
+    if _arguments:
+        wordBeginning = _arguments[0]
+
+    for target in _targets:
+        t = _targets[target]
+        if not t.hidden and target.startswith(wordBeginning):
+            result = result + ' ' + target
+
+    if wordBeginning.startswith('-'):
+        # Let's only spam the completion with switches if the user already typed -
+        for s in POSSIBLE_SWITCHES:
+            if s.startswith(wordBeginning):
+                result = result + ' ' + s
+
+    print result.strip()
+    sys.exit(0)
+
 
 arguments_for_target = string.join(_arguments[1:], " ")
 use_target(getTarget(_targetName), arguments_for_target)
