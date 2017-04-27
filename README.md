@@ -60,6 +60,8 @@ See `example/use.json` for a sample configuration.
 tab to "foo". Just be sure to put `niceties/rename_yatab.sh` in your PATH.
 - When `use` is run it will spawn a new bash, which will then also source .bashrc. If you don't want .bashrc to be sourced (as it might
 smash some of your freshly sourced envs) you can add "rcfile" : "my_alternative_rc.source", in *use.json*, at the top level.
+- If you need to use different git e-mail addresses in different projects you can set `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL` env variables
+in your target, so `use projectX` will use the correct git setting without you needing to run `git config --local` in all repos from that project.
 
 # Bash auto-completion
 Add this into your `/etc/bash_completion.d/use` file:
