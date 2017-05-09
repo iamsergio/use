@@ -230,15 +230,22 @@ def use_target(target, arguments_for_target):
         if not reset_env(): # source core.source
             return False
 
+    # run qdbus before sourcing, otherwise it might use an incompatible Qt
+    must_restore_yakuake = False
+    if target.yakuake_tab_name:
+        os.system("rename_yatab.sh " + target.yakuake_tab_name)
+        must_restore_yakuake = True
+
+    success = False
     if source_target(target, arguments_for_target):
-        if target.yakuake_tab_name:
-            os.system("rename_yatab.sh " + target.yakuake_tab_name)
         success = run_bash(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
-        if target.yakuake_tab_name:
-            os.system("rename_yatab.sh Shell") # restore to something generic
-        return success
     else:
-        return False
+        success = False
+
+    if must_restore_yakuake:
+        os.system("rename_yatab.sh Shell")
+
+    return success
 
 def editor():
     ed = os.getenv('USE_EDITOR')
