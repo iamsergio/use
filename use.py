@@ -201,10 +201,6 @@ def source_target(target, arguments_for_target):
     filename = filenameForTarget(target.name)
     if os.path.exists(filename):
         source_single_file(filename, arguments_for_target)
-    elif not target.cwd:
-        # No source file and no dir to change; nothing to do.
-        print "File doesn't exist " + filename
-        return False
 
     newCurTargets = string.join(currentTargets(), ';')
 
