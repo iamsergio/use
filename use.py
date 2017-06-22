@@ -25,6 +25,7 @@ class Target:
     def __init__(self):
         self.name = ""
         self.uses = []
+        self.uses_after = []
         self.cwd = ""
         self.hidden = False
         self.yakuake_tab_name = ""
@@ -69,6 +70,9 @@ def loadJson():
 
             if "uses" in target:
                 t.uses = target['uses']
+
+            if "uses_after" in target:
+                t.uses_after = target['uses_after']
 
             if "cwd" in target:
                 t.cwd = target['cwd']
@@ -209,6 +213,10 @@ def source_target(target, arguments_for_target):
 
     if arguments_for_target:
         os.environ['USE_CURRENT_TARGET_ARGS'] = arguments_for_target
+
+    for targetName in target.uses_after:
+        if not source_target(getTarget(targetName), []):
+            return False
 
     return True
 
