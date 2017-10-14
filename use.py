@@ -137,7 +137,12 @@ def source_single_file(filename, arguments_for_target):
 
     for line in proc.stdout:
         (key, _, value) = line.partition("=")
-        os.environ[key] = value.strip()
+        if key and not key.startswith('BASH_FUNC_'):
+            try:
+                os.environ[key] = value.strip()
+            except:
+                print "Error importing key=" + key + "; with value=" + value.strip()
+                throw
     proc.communicate()
 
     return True
