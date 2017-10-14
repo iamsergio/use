@@ -114,6 +114,9 @@ def platform_name():
 def isWindows():
     return platform_name() == "windows"
 
+def isMacOS():
+    return platform.system() == "Darwin"
+
 def source_single_file(filename, arguments_for_target):
     command = ""
 
@@ -236,7 +239,7 @@ def use_target(target, arguments_for_target):
 
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
     must_restore_yakuake = False
-    if target.yakuake_tab_name:
+    if target.yakuake_tab_name and not isMacOS():
         os.system("rename_yatab.sh " + target.yakuake_tab_name)
         must_restore_yakuake = True
 
