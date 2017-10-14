@@ -223,7 +223,7 @@ def source_target(target, arguments_for_target):
 def reset_env():
     os.environ['USE_CURRENT_TARGETS'] = ""
     os.environ['USE_CURRENT_TARGET_ARGS'] = ""
-    return source_target(getTarget("core"), [])
+    return source_target(getTarget("default"), [])
 
 def use_target(target, arguments_for_target):
     global _switches
@@ -231,7 +231,7 @@ def use_target(target, arguments_for_target):
         return True
 
     if '--keep' not in _switches:
-        if not reset_env(): # source core.source
+        if not reset_env(): # source default.source
             return False
 
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
@@ -270,9 +270,9 @@ def process_arguments():
             print "Invalid switch: " + a
             sys.exit(-1)
 
-def source_core():
+def source_default():
     t = Target()
-    t.name = "core"
+    t.name = "default"
     _targets[t.name] = t
 
 process_arguments()
@@ -281,7 +281,7 @@ if '--config' in _switches or '--configure' in _switches or '--conf' in _switche
     open_editor(_json_config_file)
     sys.exit(1)
 
-source_core()
+source_default()
 
 if not loadJson():
     print "Error loading json"
