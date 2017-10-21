@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import sys, os, json, platform
-import subprocess, string
+import subprocess, string, re
 
 _json_config_file = os.getenv('USE_CONFIG_FILE')
 _targets_folder = os.getenv('USE_TARGETS_FOLDER')
@@ -21,15 +21,73 @@ if not _targets_folder:
     print "Use folder not found!\nSet env variable USE_TARGETS_FOLDER, point it to your folder with env scripts.\n"
     sys.exit(-1)
 
-class Target:
+def list_separator():
+    if os.name == 'nt':
+        return ';'
+    return ':'
+
+def to_native_path(path):
+    path = os.path.abspath(path)
+    if path.endswith("\\") or (path.endswith('/') and path != '/'):
+        path = path[:-1]
+    return path
+
+class EnvVariable:
     def __init__(self):
         self.name = ""
+        self.value = ""
+        self.values = []
+
+class Target:
+    def __init__(self, tname):
+        self.name = tname
         self.uses = []
         self.uses_after = []
         self.cwd = ""
         self.hidden = False
         self.yakuake_tab_name = ""
         self.platforms = []
+        self.variables = [] # TODO rename
+
+        self.loadJson()
+
+    def jsonFileName(self):
+        return _targets_folder + "/../unified/" + self.name + ".json"
+
+    def env_var_from_json(self, json):
+        var = EnvVariable()
+        key = json.keys()[0]
+        var.name = key
+        value = json[key]
+        value_is_list = type(value) == type([])
+
+        if value_is_list:
+            var.values = value
+        else:
+            var.value = str(value)
+
+        return var
+
+    def loadJson(self):
+        if not os.path.exists(self.jsonFileName()):
+            return False
+
+        f = open(self.jsonFileName(), 'r')
+        # print "Processing " + self.jsonFileName()
+        contents = f.read()
+        f.close()
+        decoded = json.loads(contents)
+        if "os_specific" in decoded:
+            if os.name in decoded["os_specific"]:
+                for env_var in decoded["os_specific"][os.name]:
+                    self.variables.append(self.env_var_from_json(env_var))
+
+        if "env_variables" in decoded:
+            for env_var in decoded["env_variables"]:
+                self.variables.append(self.env_var_from_json(env_var))
+
+        return True
+
 
 def printUsage():
     print "Usage:"
@@ -61,12 +119,14 @@ def loadJson():
 
     if "targets" in decoded:
         for target in decoded['targets']:
-            t = Target()
+            name = ""
             if "name" in target:
-                t.name = target['name']
+                name = target['name']
             else:
                 print "Missing name for target"
                 return False
+
+            t = Target(name)
 
             if "uses" in target:
                 t.uses = target['uses']
@@ -117,6 +177,31 @@ def isWindows():
 def isMacOS():
     return platform.system() == "Darwin"
 
+def fill_placeholders(value):
+    placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
+    for placeholder in placeholders:
+        if placeholder in os.environ:
+            value = value.replace("${" + placeholder + "}", os.environ[placeholder])
+
+    return value
+
+def source_single_json(target):
+    for v in target.variables:
+        if not v.name:
+            continue
+
+        if v.value:
+            os.environ[v.name] = fill_placeholders(v.value)
+        else: # list case
+            value = list_separator()
+            for list_token in v.values:
+                list_token = fill_placeholders(list_token)
+                if v.name in ['PATH', 'LD_LIBRARY_PATH']: # TODO make generic, so we can normalize more PATHs
+                    list_token = to_native_path(list_token)
+                value = value + list_separator() + list_token
+
+            os.environ[v.name] = value.strip(list_separator())
+
 def source_single_file(filename, arguments_for_target):
     command = ""
 
@@ -133,7 +218,7 @@ def source_single_file(filename, arguments_for_target):
     # print "Sourcing " + filename
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
 
-    print "Running " + filename_cmd
+    print "Sourcing " + to_native_path(filename_cmd)
 
     for line in proc.stdout:
         (key, _, value) = line.partition("=")
@@ -152,8 +237,16 @@ def extensionForScript():
         return ".bat"
     return ".source"
 
-def filenameForTarget(targetName):
-    return _targets_folder + "/" + targetName + extensionForScript()
+def filenameForTarget(target):
+    filename = _targets_folder + "/" + target.name + extensionForScript()
+
+    if os.path.exists(target.jsonFileName()):
+        if os.path.exists(filename):
+            print "Favoring .json over " + filename
+
+        return target.jsonFileName()
+
+    return filename
 
 def currentTargets():
     targets = os.getenv('USE_CURRENT_TARGETS')
@@ -176,7 +269,6 @@ def run_bash(cwd):
     else:
         cmd = shellForOS()
 
-    # print "Running: " + cmd
     old_cwd = ""
     if cwd:
         old_cwd = os.getcwd()
@@ -210,9 +302,14 @@ def source_target(target, arguments_for_target):
         if not source_target(getTarget(targetName), []):
             return False
 
-    filename = filenameForTarget(target.name)
-    if os.path.exists(filename):
-        source_single_file(filename, arguments_for_target)
+    filename = filenameForTarget(target)
+
+    if filename.endswith(".json"):
+        print "Sourcing " + to_native_path(filename)
+        source_single_json(target)
+    else:
+        if os.path.exists(filename):
+            source_single_file(filename, arguments_for_target)
 
     newCurTargets = string.join(currentTargets(), ';')
 
@@ -279,8 +376,7 @@ def process_arguments():
             sys.exit(-1)
 
 def source_default():
-    t = Target()
-    t.name = "default"
+    t = Target("default")
     _targets[t.name] = t
 
 process_arguments()
@@ -302,7 +398,7 @@ if len(sys.argv) == 1:
 _targetName = sys.argv[1]
 
 if '--edit' in _switches:
-    filename = filenameForTarget(_targetName)
+    filename = filenameForTarget(Target(_targetName))
     print "Opening editor for " + filename
     if not open_editor(filename):
         print "Error opening editor"
