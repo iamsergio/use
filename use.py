@@ -37,6 +37,8 @@ class EnvVariable:
         self.name = ""
         self.value = ""
         self.values = []
+    def isPath(self):
+        return self.values or '/' in self.value or '\\' in self.value
 
 class Target:
     def __init__(self, tname):
@@ -191,12 +193,15 @@ def source_single_json(target):
             continue
 
         if v.value:
-            os.environ[v.name] = fill_placeholders(v.value)
+            value = fill_placeholders(v.value)
+            if v.isPath():
+                value = to_native_path(value)
+            os.environ[v.name] = value
         else: # list case
             value = list_separator()
             for list_token in v.values:
                 list_token = fill_placeholders(list_token)
-                if v.name in ['PATH', 'LD_LIBRARY_PATH']: # TODO make generic, so we can normalize more PATHs
+                if v.isPath():
                     list_token = to_native_path(list_token)
                 value = value + list_separator() + list_token
 
