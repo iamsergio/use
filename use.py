@@ -209,11 +209,12 @@ def source_single_file(filename, arguments_for_target):
     if arguments_for_target:
         filename_cmd = filename_cmd + " " + arguments_for_target
 
-    if isWindows():
+    shell = shellForOS()
+    if shell == 'cmd':
         command = ['cmd', '/C', filename_cmd + ' && set']
         # os.environ['PROMPT'] = ""
     else:
-        command = ['bash', '-c', 'source ' + filename_cmd + ' && env']
+        command = [shell, '-c', 'source ' + filename_cmd + ' && env']
 
     # print "Sourcing " + filename
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
@@ -258,16 +259,21 @@ def currentTargetsStr():
     return string.join(currentTargets(), ' ');
 
 def shellForOS():
+    if 'SHELL' in os.environ:
+        return os.environ['SHELL']
+
     if isWindows():
         return 'cmd'
+
     return 'bash'
 
-def run_bash(cwd):
+def run_shell(cwd):
     cmd = ""
-    if _rcfile and not isWindows(): # Windows sources the alias automatically
-        cmd = "bash --rcfile " + _rcfile
+    shell =  shellForOS()
+    if _rcfile and 'bash' in shell:
+        cmd = shell + " --rcfile " + _rcfile
     else:
-        cmd = shellForOS()
+        cmd = shell
 
     old_cwd = ""
     if cwd:
@@ -347,7 +353,7 @@ def use_target(target, arguments_for_target):
 
     success = False
     if source_target(target, arguments_for_target):
-        success = run_bash(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
+        success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
     else:
         success = False
 
