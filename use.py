@@ -32,6 +32,14 @@ def to_native_path(path):
         path = path[:-1]
     return path
 
+def fill_placeholders(value):
+    placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
+    for placeholder in placeholders:
+        if placeholder in os.environ:
+            value = value.replace("${" + placeholder + "}", os.environ[placeholder])
+
+    return value
+
 class EnvVariable:
     def __init__(self):
         self.name = ""
@@ -49,7 +57,7 @@ class Target:
         self.hidden = False
         self.yakuake_tab_name = ""
         self.platforms = []
-        self.variables = [] # TODO rename
+        self.variables = []
 
         self.loadJson()
 
@@ -73,9 +81,15 @@ class Target:
     def loadJson(self):
         if not os.path.exists(self.jsonFileName()):
             return False
+        return self.loadJsonFile(self.jsonFileName())
 
-        f = open(self.jsonFileName(), 'r')
-        # print "Processing " + self.jsonFileName()
+    def loadJsonFile(self, filename):
+        if not os.path.exists(filename):
+            print "File doesn't exist: " + filename
+            return False
+
+        f = open(filename, 'r')
+        # print "Processing " + filename
         contents = f.read()
         f.close()
         decoded = json.loads(contents)
@@ -88,8 +102,11 @@ class Target:
             for env_var in decoded["env_variables"]:
                 self.variables.append(self.env_var_from_json(env_var))
 
+        if "includes" in decoded:
+            for include in decoded['includes']:
+                if not self.loadJsonFile(fill_placeholders(include)):
+                    return False
         return True
-
 
 def printUsage():
     print "Usage:"
@@ -178,14 +195,6 @@ def isWindows():
 
 def isMacOS():
     return platform.system() == "Darwin"
-
-def fill_placeholders(value):
-    placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
-    for placeholder in placeholders:
-        if placeholder in os.environ:
-            value = value.replace("${" + placeholder + "}", os.environ[placeholder])
-
-    return value
 
 def source_single_json(target):
     for v in target.variables:
