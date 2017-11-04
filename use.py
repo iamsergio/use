@@ -21,6 +21,15 @@ if not _targets_folder:
     print "Use folder not found!\nSet env variable USE_TARGETS_FOLDER, point it to your folder with env scripts.\n"
     sys.exit(-1)
 
+def isWindows():
+    return platform_name() == "windows"
+
+def isMacOS():
+    return platform.system() == "Darwin"
+
+def isBash():
+    return "bash" in os.getenv("SHELL")
+
 def list_separator():
     if os.name == 'nt':
         return ';'
@@ -189,12 +198,6 @@ def platform_name():
     else:
         print "Unsupported platform"
         sys.exit(-1)
-
-def isWindows():
-    return platform_name() == "windows"
-
-def isMacOS():
-    return platform.system() == "Darwin"
 
 def source_single_json(target):
     for v in target.variables:
