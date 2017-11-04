@@ -176,6 +176,7 @@ def loadJson():
     if "rcfile" in decoded:
         _rcfile = decoded['rcfile']
         if not os.path.exists(_rcfile):
+            print "Requested rcfile doesn't exist: " + _rcfile
             return False
 
     return True;
