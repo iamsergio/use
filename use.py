@@ -227,7 +227,7 @@ def source_single_file(filename, arguments_for_target):
     if arguments_for_target:
         filename_cmd = filename_cmd + " " + arguments_for_target
 
-    shell = shellForOS()
+    shell = shellForOS(filename)
     if shell == 'cmd':
         command = ['cmd', '/C', filename_cmd + ' && set']
         # os.environ['PROMPT'] = ""
@@ -276,7 +276,11 @@ def currentTargets():
 def currentTargetsStr():
     return string.join(currentTargets(), ' ');
 
-def shellForOS():
+def shellForOS(filename = ""):
+    # .bat files are always sourced by cmd. Use .json if you don't like this
+    if filename.endswith(".bat") or filename.endswith(".cmd"):
+        return 'cmd'
+
     if 'SHELL' in os.environ:
         return os.environ['SHELL']
 
