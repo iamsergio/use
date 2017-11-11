@@ -10,6 +10,7 @@ _rcfile = ""
 _arguments = sys.argv[1:]
 _configure = False
 _switches = []
+_ask_for_ssh_keys = False
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper']
 
@@ -143,7 +144,7 @@ def loadJson():
 
     decoded = json.loads(contents)
 
-    global _rcfile
+    global _rcfile, _ask_for_ssh_keys
 
     if "targets" in decoded:
         for target in decoded['targets']:
@@ -178,6 +179,9 @@ def loadJson():
         if not os.path.exists(_rcfile):
             print "Requested rcfile doesn't exist: " + _rcfile
             return False
+
+    if "ask_for_ssh_keys" in decoded:
+        _ask_for_ssh_keys = decoded['ask_for_ssh_keys']
 
     return True;
 
@@ -407,6 +411,14 @@ def source_default():
     t = Target("default")
     _targets[t.name] = t
 
+def ask_for_ssh_keys():
+    try:
+        subprocess.check_output(["ssh-add", "-L"]) == 0
+    except:
+        return os.system("ssh-add") == 0
+
+    return True
+
 process_arguments()
 
 if '--config' in _switches or '--configure' in _switches or '--conf' in _switches:
@@ -456,6 +468,8 @@ if '--bash-autocomplete-helper' in _switches:
     print result.strip()
     sys.exit(0)
 
+if _ask_for_ssh_keys:
+    ask_for_ssh_keys()
 
 arguments_for_target = string.join(_arguments[1:], " ")
 use_target(getTarget(_targetName), arguments_for_target)
