@@ -22,11 +22,17 @@ if not _targets_folder:
     print "Use folder not found!\nSet env variable USE_TARGETS_FOLDER, point it to your folder with env scripts.\n"
     sys.exit(-1)
 
-def isWindows():
-    return platform_name() == "windows"
+def osType(): # returns 'nt' or 'posix'
+    return os.name
 
-def isMacOS():
-    return platform.system() == "Darwin"
+def platformName(): # returns 'Windows', 'Linux' or 'Darwin'
+    return platform.system()
+
+def isWindows():
+    return platform.system() == "Windows"
+
+def isLinux():
+    return platform.system() == "Linux"
 
 def isBash():
     return "bash" in os.getenv("SHELL")
@@ -103,13 +109,20 @@ class Target:
         contents = f.read()
         f.close()
         decoded = json.loads(contents)
-        if "os_specific" in decoded:
-            if os.name in decoded["os_specific"]:
-                for env_var in decoded["os_specific"][os.name]:
-                    self.variables.append(self.env_var_from_json(env_var))
 
-        if "env_variables" in decoded:
-            for env_var in decoded["env_variables"]:
+        # first source 'nt' and 'posix'
+        if osType() in decoded:
+            for env_var in decoded[osType()]:
+                self.variables.append(self.env_var_from_json(env_var))
+
+        # now source 'Linux', 'Darwin'or 'Windows', which have precedence
+        if platformName() in decoded:
+            for env_var in decoded[platformName()]:
+                self.variables.append(self.env_var_from_json(env_var))
+
+        # Source the platform-independent variables
+        if "any" in decoded:
+            for env_var in decoded["any"]:
                 self.variables.append(self.env_var_from_json(env_var))
 
         if "includes" in decoded:
@@ -191,18 +204,6 @@ def getTarget(name):
     else:
         print "Unknown target: " + name
         printUsage()
-
-def platform_name():
-    plat = platform.system()
-    if plat == "Linux":
-        return "linux"
-    elif plat == "Windows":
-        return "windows"
-    elif plat == "Darwin":
-        return "osx"
-    else:
-        print "Unsupported platform"
-        sys.exit(-1)
 
 def source_single_json(target):
     for v in target.variables:
@@ -373,7 +374,7 @@ def use_target(target, arguments_for_target):
 
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
     must_restore_yakuake = False
-    if target.yakuake_tab_name and not isMacOS():
+    if target.yakuake_tab_name and isLinux():
         os.system("rename_yatab.sh " + target.yakuake_tab_name)
         must_restore_yakuake = True
 
