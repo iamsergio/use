@@ -286,8 +286,10 @@ def shellForOS(filename = ""):
     if filename.endswith(".bat") or filename.endswith(".cmd"):
         return 'cmd'
 
-    if 'SHELL' in os.environ:
-        return os.environ['SHELL']
+    envShell = os.getenv('SHELL')
+
+    if envShell and envShell != '/bin/false':
+        return envShell
 
     if isWindows():
         return 'cmd'
@@ -308,6 +310,7 @@ def run_shell(cwd):
         os.chdir(cwd)
     result = True
     try:
+        # print 'Running ' + cmd
         result = os.system(cmd) == 0
     except:
         pass
