@@ -74,6 +74,7 @@ class Target:
         self.yakuake_tab_name = ""
         self.platforms = []
         self.variables = []
+        self.arg = ""
 
         self.loadJson()
 
@@ -98,6 +99,9 @@ class Target:
         if not os.path.exists(self.jsonFileName()):
             return False
         return self.loadJsonFile(self.jsonFileName())
+
+    def isGeneric(self):
+        return "%" in self.name
 
     def loadJsonFile(self, filename):
         if not os.path.exists(filename):
@@ -198,12 +202,28 @@ def loadJson():
 
     return True;
 
+def getGenericTargetAndArg(name):
+    tokens = re.findall('(.*)-(.*)', name)
+    tokens = tokens[0]
+
+    if len(tokens) == 2:
+        return { "name" : tokens[0], "arg" : tokens[1] }
+
+    return {}
+
 def getTarget(name):
     if name in _targets:
         return _targets[name]
-    else:
-        print "Unknown target: " + name
-        printUsage()
+
+    genericTarget = getGenericTargetAndArg(name)
+
+    if genericTarget and genericTarget["name"] + "-%" in _targets:
+        target = _targets[genericTarget["name"] + "-%"]
+        target.arg = genericTarget["arg"]
+        return target
+
+    print "Unknown target: " + name
+    printUsage()
 
 def source_single_json(target):
     for v in target.variables:
@@ -211,7 +231,10 @@ def source_single_json(target):
             continue
 
         if v.value:
-            value = fill_placeholders(v.value)
+            if v.value == "USE_ARG":
+                value = target.arg
+            else:
+                value = fill_placeholders(v.value)
             if v.isPath():
                 value = to_native_path(value)
             os.environ[v.name] = value
@@ -263,8 +286,7 @@ def extensionForScript():
 
 def filenameForTarget(target):
     filename = _targets_folder + "/" + target.name + extensionForScript()
-
-    if os.path.exists(target.jsonFileName()):
+    if os.path.exists(target.jsonFileName()) or target.isGeneric():
         if os.path.exists(filename):
             print "Favoring .json over " + filename
 
@@ -341,7 +363,10 @@ def source_target(target, arguments_for_target):
     filename = filenameForTarget(target)
 
     if filename.endswith(".json"):
-        print "Sourcing " + to_native_path(filename)
+        arg = ""
+        if target.arg:
+            arg = " " + target.arg
+        print "Sourcing " + to_native_path(filename) + arg
         source_single_json(target)
     else:
         if os.path.exists(filename):
