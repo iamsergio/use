@@ -103,6 +103,11 @@ class Target:
     def isGeneric(self):
         return "%" in self.name
 
+    def displayName(self):
+        if self.isGeneric() and self.arg:
+            return self.name.replace("%", self.arg)
+        return self.name
+
     def loadJsonFile(self, filename):
         if not os.path.exists(filename):
             print "File doesn't exist: " + filename
@@ -374,7 +379,7 @@ def source_target(target, arguments_for_target):
 
     newCurTargets = string.join(currentTargets(), ';')
 
-    os.environ['USE_CURRENT_TARGETS'] = newCurTargets + ";" + target.name
+    os.environ['USE_CURRENT_TARGETS'] = newCurTargets + ";" + target.displayName()
     os.environ['USE_CURRENT_TARGET_ARGS'] = ""
 
     if arguments_for_target:
