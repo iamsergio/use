@@ -345,8 +345,8 @@ def run_shell(cwd):
 
     return result
 
-def is_sourced(targetName):
-    if targetName not in currentTargets():
+def is_sourced(target):
+    if target.displayName() not in currentTargets():
         return False
 
     return True
@@ -387,7 +387,7 @@ def reset_env():
 
 def use_target(target):
     global _switches
-    if is_sourced(target.name):
+    if is_sourced(target):
         return True
 
     if '--keep' not in _switches:
