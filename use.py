@@ -253,12 +253,10 @@ def source_single_json(target):
 
             os.environ[v.name] = value.strip(list_separator())
 
-def source_single_file(filename, arguments_for_target):
+def source_single_file(filename):
     command = ""
 
     filename_cmd = filename
-    if arguments_for_target:
-        filename_cmd = filename_cmd + " " + arguments_for_target
 
     shell = shellForOS(filename)
     if shell == 'cmd':
@@ -347,22 +345,18 @@ def run_shell(cwd):
 
     return result
 
-def is_sourced(targetName, arguments_for_target):
+def is_sourced(targetName):
     if targetName not in currentTargets():
         return False
 
-    current_target_args = ""
-    if 'USE_CURRENT_TARGET_ARGS' in os.environ:
-        current_target_args = os.environ['USE_CURRENT_TARGET_ARGS']
+    return True
 
-    return current_target_args == arguments_for_target
-
-def source_target(target, arguments_for_target):
+def source_target(target):
     if target.name in currentTargets():
         return True
 
     for targetName in target.uses:
-        if not source_target(getTarget(targetName), []):
+        if not source_target(getTarget(targetName)):
             return False
 
     filename = filenameForTarget(target)
@@ -375,30 +369,25 @@ def source_target(target, arguments_for_target):
         source_single_json(target)
     else:
         if os.path.exists(filename):
-            source_single_file(filename, arguments_for_target)
+            source_single_file(filename)
 
     newCurTargets = string.join(currentTargets(), ';')
 
     os.environ['USE_CURRENT_TARGETS'] = newCurTargets + ";" + target.displayName()
-    os.environ['USE_CURRENT_TARGET_ARGS'] = ""
-
-    if arguments_for_target:
-        os.environ['USE_CURRENT_TARGET_ARGS'] = arguments_for_target
 
     for targetName in target.uses_after:
-        if not source_target(getTarget(targetName), []):
+        if not source_target(getTarget(targetName)):
             return False
 
     return True
 
 def reset_env():
     os.environ['USE_CURRENT_TARGETS'] = ""
-    os.environ['USE_CURRENT_TARGET_ARGS'] = ""
-    return source_target(getTarget("default"), [])
+    return source_target(getTarget("default"))
 
-def use_target(target, arguments_for_target):
+def use_target(target):
     global _switches
-    if is_sourced(target.name, arguments_for_target):
+    if is_sourced(target.name):
         return True
 
     if '--keep' not in _switches:
@@ -412,7 +401,7 @@ def use_target(target, arguments_for_target):
         must_restore_yakuake = True
 
     success = False
-    if source_target(target, arguments_for_target):
+    if source_target(target):
         success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
     else:
         success = False
@@ -505,5 +494,4 @@ if '--bash-autocomplete-helper' in _switches:
 if _ask_for_ssh_keys:
     ask_for_ssh_keys()
 
-arguments_for_target = string.join(_arguments[1:], " ")
-use_target(getTarget(_targetName), arguments_for_target)
+use_target(getTarget(_targetName))
