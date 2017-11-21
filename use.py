@@ -31,6 +31,13 @@ def platformName(): # returns 'Windows', 'Linux' or 'Darwin'
 def isWindows():
     return platform.system() == "Windows"
 
+def isWSL():
+    try:
+        f = open('/proc/version','r')
+        return 'microsoft' in f.read().lower()
+    except:
+        return False
+
 def isLinux():
     return platform.system() == "Linux"
 
@@ -127,6 +134,10 @@ class Target:
         # now source 'Linux', 'Darwin'or 'Windows', which have precedence
         if platformName() in decoded:
             for env_var in decoded[platformName()]:
+                self.variables.append(self.env_var_from_json(env_var))
+
+        if isWSL() and "Windows-WSL" in decoded:
+            for env_var in decoded["Windows-WSL"]:
                 self.variables.append(self.env_var_from_json(env_var))
 
         # Source the platform-independent variables
