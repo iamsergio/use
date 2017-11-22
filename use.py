@@ -5,6 +5,7 @@ import subprocess, string, re
 
 _json_config_file = os.getenv('USE_CONFIG_FILE')
 _targets_folder = os.getenv('USE_TARGETS_FOLDER')
+_rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
 _targets = {}
 _rcfile = ""
 _arguments = sys.argv[1:]
@@ -397,7 +398,7 @@ def reset_env():
     return source_target(getTarget("default"))
 
 def use_target(target):
-    global _switches
+    global _switches, _rename_yakuake_tab
     if is_sourced(target):
         return True
 
@@ -407,7 +408,7 @@ def use_target(target):
 
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
     must_restore_yakuake = False
-    if target.yakuake_tab_name and isLinux():
+    if target.yakuake_tab_name and _rename_yakuake_tab:
         os.system("rename_yatab.sh " + target.yakuake_tab_name)
         must_restore_yakuake = True
 
