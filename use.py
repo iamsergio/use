@@ -59,8 +59,7 @@ def to_native_path(path):
 def fill_placeholders(value):
     placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
     for placeholder in placeholders:
-        if placeholder in os.environ:
-            value = value.replace("${" + placeholder + "}", os.environ[placeholder])
+        value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
 
     return value
 
