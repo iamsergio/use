@@ -12,8 +12,9 @@ _arguments = sys.argv[1:]
 _configure = False
 _switches = []
 _ask_for_ssh_keys = False
+_is_debug = '--debug' in sys.argv
 
-POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper']
+POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper', '--debug']
 
 if not _json_config_file:
     print "Configuration file not found!\nSet the env variable USE_CONFIG_FILE, point it to your json file.\n"
@@ -254,6 +255,8 @@ def source_single_json(target):
             if v.isPath():
                 value = to_native_path(value)
             os.environ[v.name] = value
+            if _is_debug:
+                print "var : " + v.name + "=" + value + " (v.isPath=" + str(v.isPath()) + ")"
         else: # list case
             value = list_separator()
             for list_token in v.values:
@@ -263,6 +266,8 @@ def source_single_json(target):
                 value = value + list_separator() + list_token
 
             os.environ[v.name] = value.strip(list_separator())
+            if _is_debug:
+                print "List: " + v.name + "=" +  value.strip(list_separator())
 
 def source_single_file(filename):
     command = ""
