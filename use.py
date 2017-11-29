@@ -230,7 +230,7 @@ def loadJson():
     return True;
 
 def getGenericTargetAndArg(name):
-    tokens = re.findall('(.*)-(.*)', name)
+    tokens = re.findall('(.*?)-(.*)', name)
     tokens = tokens[0]
 
     if len(tokens) == 2:
