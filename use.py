@@ -86,6 +86,7 @@ class Target:
         self.platforms = []
         self.variables = []
         self.arg = ""
+        self.description = ""
 
         self.loadJson()
 
@@ -153,6 +154,10 @@ class Target:
             for include in decoded['includes']:
                 if not self.loadJsonFile(fill_placeholders(include)):
                     return False
+
+        if "description" in decoded:
+            self.description = decoded['description']
+
         return True
 
 def printUsage():
@@ -163,8 +168,10 @@ def printUsage():
     for target in _targets:
         t = _targets[target]
         if not t.hidden:
-            print "  " + target
-
+            str = "  " + target
+            if t.description:
+                str += " (" + t.description + ")"
+            print str
     sys.exit(1)
 
 def cleanup_cwd(cwd):
