@@ -120,6 +120,11 @@ class Target:
             return self.name.replace("%", self.arg)
         return self.name
 
+    def simpleName(self):
+        if self.isGeneric():
+            return self.name.replace("-%", "")
+        return self.name
+
     def loadJsonFile(self, filename):
         if not os.path.exists(filename):
             print "File doesn't exist: " + filename
@@ -230,11 +235,19 @@ def loadJson():
     return True;
 
 def getGenericTargetAndArg(name):
-    tokens = re.findall('(.*?)-(.*)', name)
-    tokens = tokens[0]
+    candidates = []
+    for targetName in _targets.keys():
+        target = _targets[targetName]
+        if target.isGeneric():
+            targetName = target.simpleName() # Example "qt-" instead of "qt-%"
+            if name.startswith(targetName):
+                candidates.append(targetName)
 
-    if len(tokens) == 2:
-        return { "name" : tokens[0], "arg" : tokens[1] }
+    # Sort candidates by length, so that "qt-mingw-%" matches "qt-mingw-", not "qt-"
+    if candidates:
+        candidates.sort(key=len, reverse=True)
+        arg = name.replace(candidates[0] + "-", "")
+        return { "name" : candidates[0], "arg" : arg }
 
     return {}
 
