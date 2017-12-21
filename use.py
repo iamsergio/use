@@ -485,7 +485,6 @@ def resolve_generic_targets(name):
         return
 
     genericTarget = getGenericTargetAndArg(name)
-    print genericTarget["arg"]
 
     if genericTarget and genericTarget["name"] + "-%" in _targets:
         # We have an arg! Replace all our targets which name as -% with this arg
