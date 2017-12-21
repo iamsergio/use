@@ -258,9 +258,7 @@ def getTarget(name):
     genericTarget = getGenericTargetAndArg(name)
 
     if genericTarget and genericTarget["name"] + "-%" in _targets:
-        target = _targets[genericTarget["name"] + "-%"]
-        target.arg = genericTarget["arg"]
-        return target
+        return _targets[genericTarget["name"] + "-%"]
 
     print "Unknown target: " + name
     printUsage()
@@ -481,6 +479,22 @@ def ask_for_ssh_keys():
 
     return True
 
+def resolve_generic_targets(name):
+    # The requested name matches a target name, no % will be replaced
+    if name in _targets:
+        return
+
+    genericTarget = getGenericTargetAndArg(name)
+    print genericTarget["arg"]
+
+    if genericTarget and genericTarget["name"] + "-%" in _targets:
+        # We have an arg! Replace all our targets which name as -% with this arg
+        for targetName in _targets.keys():
+            target = _targets[targetName]
+            if target.isGeneric():
+                target.arg = genericTarget["arg"]
+#-------------------------------------------------------------------------------
+
 process_arguments()
 
 if '--config' in _switches or '--configure' in _switches or '--conf' in _switches:
@@ -533,4 +547,5 @@ if '--bash-autocomplete-helper' in _switches:
 if _ask_for_ssh_keys:
     ask_for_ssh_keys()
 
+resolve_generic_targets(_targetName)
 use_target(getTarget(_targetName))
