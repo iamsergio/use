@@ -547,4 +547,9 @@ if _ask_for_ssh_keys:
     ask_for_ssh_keys()
 
 resolve_generic_targets(_targetName)
-use_target(getTarget(_targetName))
+t = getTarget(_targetName)
+
+if t.hidden:
+    print "Target is hidden!"
+else:
+    use_target(t)
