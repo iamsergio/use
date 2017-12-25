@@ -479,14 +479,26 @@ def ask_for_ssh_keys():
 
     return True
 
-def resolve_generic_targets(name):
-    # The requested name matches a target name, no % will be replaced
-    if name in _targets:
-        return
 
-    genericTarget = getGenericTargetAndArg(name)
+def first_generic_target(targetName):
+    if targetName in _targets:
+        target = getTarget(targetName)
+        for t in target.uses:
+            result = first_generic_target(t)
+            if result is not None:
+                return result
+        return None
 
+    genericTarget = getGenericTargetAndArg(targetName)
     if genericTarget and genericTarget["name"] + "-%" in _targets:
+        return genericTarget
+
+    return None
+
+def resolve_generic_targets(name):
+    genericTarget = first_generic_target(name)
+
+    if genericTarget is not None:
         # We have an arg! Replace all our targets which name as -% with this arg
         for targetName in _targets.keys():
             target = _targets[targetName]
