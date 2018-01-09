@@ -93,6 +93,11 @@ class Target:
     def jsonFileName(self):
         return _targets_folder + "/../unified/" + self.name + ".json"
 
+    def yakuakeTabName(self):
+        if self.isGeneric():
+            return self.yakuake_tab_name.replace("%", self.arg)
+        return self.yakuake_tab_name
+
     def env_var_from_json(self, json):
         var = EnvVariable()
         key = json.keys()[0]
@@ -434,7 +439,7 @@ def use_target(target):
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
     must_restore_yakuake = False
     if target.yakuake_tab_name and _rename_yakuake_tab:
-        os.system("rename_yatab.sh " + target.yakuake_tab_name)
+        os.system("rename_yatab.sh " + target.yakuakeTabName())
         must_restore_yakuake = True
 
     success = False
