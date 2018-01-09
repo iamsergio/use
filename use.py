@@ -524,6 +524,11 @@ if len(sys.argv) == 1:
 
 _targetName = sys.argv[1]
 
+if "%" in _targetName:
+    print "Pass an actual replacement to %"
+    sys.exit(-1)
+
+
 if '--edit' in _switches:
     filename = filenameForTarget(Target(_targetName))
     print "Opening editor for " + filename
