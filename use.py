@@ -228,11 +228,15 @@ def loadJson():
 
             _targets[t.name] = t
 
-    if "rcfile" in decoded:
+    # platform specific rcfile takes precedence
+    if "rcfile_" + os.name in decoded:
+        _rcfile = decoded["rcfile_" + os.name]
+    elif "rcfile" in decoded:
         _rcfile = decoded['rcfile']
-        if not os.path.exists(_rcfile):
-            print "Requested rcfile doesn't exist: " + _rcfile
-            return False
+
+    if not os.path.exists(_rcfile):
+        print "Requested rcfile doesn't exist: " + _rcfile
+        return False
 
     if "ask_for_ssh_keys" in decoded:
         _ask_for_ssh_keys = decoded['ask_for_ssh_keys']
