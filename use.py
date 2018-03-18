@@ -64,6 +64,26 @@ def fill_placeholders(value):
 
     return value
 
+# Reads a property from json, but tries several platform suffixes
+def read_json_property(propName, json):
+    # First try with OS qualification
+    # for example, if propName is "cwd", we try "cwd_Windows".
+    propNameCandiate = propName + "_" + platform.system()
+
+    if propNameCandiate in json:
+        return json[propNameCandiate]
+
+    # Now try OS type (posix vs nt), as Linux shared much with macOS
+    propNameCandiate = propName + "_" + os.name
+    if propNameCandiate in json:
+        return json[propNameCandiate]
+
+    # finally, the property without any qualification
+    if propName in json:
+        return json[propName]
+
+    return None
+
 class EnvVariable:
     def __init__(self):
         self.name = ""
@@ -217,8 +237,9 @@ def loadJson():
             if "uses_after" in target:
                 t.uses_after = target['uses_after']
 
-            if "cwd" in target:
-                t.cwd = target['cwd']
+            cwd = read_json_property("cwd", target)
+            if cwd:
+                t.cwd = cwd
 
             if "rename_yakuake_to" in target:
                 t.yakuake_tab_name = target['rename_yakuake_to']
