@@ -377,8 +377,11 @@ def run_shell(cwd):
 
     old_cwd = ""
     if cwd:
-        old_cwd = os.getcwd()
-        os.chdir(cwd)
+        if os.path.exists(cwd):
+            old_cwd = os.getcwd()
+            os.chdir(cwd)
+        else:
+            print("cwd Path doesn't exist: " + cwd)
     result = True
     try:
         # print 'Running ' + cmd
