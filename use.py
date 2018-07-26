@@ -408,7 +408,10 @@ def run_shell(cwd):
             print("cwd Path doesn't exist: " + cwd)
     result = True
     try:
-        # print 'Running ' + cmd
+        global _is_debug
+        if _is_debug:
+            print 'Running ' + cmd
+
         result = os.system(cmd) == 0
     except:
         pass
