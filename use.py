@@ -255,6 +255,9 @@ def loadJson():
     elif "rcfile" in decoded:
         _rcfile = decoded['rcfile']
 
+    if _is_debug:
+        print "_rcfile=" + _rcfile
+
     if not os.path.exists(_rcfile):
         print "Requested rcfile doesn't exist: " + _rcfile
         return False
@@ -262,7 +265,7 @@ def loadJson():
     if "ask_for_ssh_keys" in decoded:
         _ask_for_ssh_keys = decoded['ask_for_ssh_keys']
 
-    return True;
+    return True
 
 def getGenericTargetAndArg(name):
     candidates = []
@@ -371,7 +374,7 @@ def currentTargets():
     return targets.split(';')
 
 def currentTargetsStr():
-    return string.join(currentTargets(), ' ');
+    return string.join(currentTargets(), ' ')
 
 def shellForOS(filename = ""):
     # .bat files are always sourced by cmd. Use .json if you don't like this
