@@ -30,6 +30,9 @@ def osType(): # returns 'nt' or 'posix'
 def platformName(): # returns 'Windows', 'Linux' or 'Darwin'
     return platform.system()
 
+def platformNameLowercase():
+    return platformName().lower()
+
 def isWindows():
     return platform.system() == "Windows"
 
@@ -250,7 +253,10 @@ def loadJson():
             _targets[t.name] = t
 
     # platform specific rcfile takes precedence
-    if "rcfile_" + os.name in decoded:
+    print "rcfile_" + platformNameLowercase()
+    if "rcfile_" + platformNameLowercase() in decoded:
+        _rcfile = decoded["rcfile_" + platformNameLowercase()]
+    elif "rcfile_" + os.name in decoded:
         _rcfile = decoded["rcfile_" + os.name]
     elif "rcfile" in decoded:
         _rcfile = decoded['rcfile']
@@ -258,7 +264,7 @@ def loadJson():
     if _is_debug:
         print "_rcfile=" + _rcfile
 
-    if not os.path.exists(_rcfile):
+    if _rcfile and not os.path.exists(_rcfile):
         print "Requested rcfile doesn't exist: " + _rcfile
         return False
 
