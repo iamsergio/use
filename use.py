@@ -253,7 +253,6 @@ def loadJson():
             _targets[t.name] = t
 
     # platform specific rcfile takes precedence
-    print "rcfile_" + platformNameLowercase()
     if "rcfile_" + platformNameLowercase() in decoded:
         _rcfile = decoded["rcfile_" + platformNameLowercase()]
     elif "rcfile_" + os.name in decoded:
