@@ -93,7 +93,7 @@ class EnvVariable:
         self.value = ""
         self.values = []
     def isPath(self):
-        if self.value.startswith('--'): # Hack, there's not an easy way to check if it's a path
+        if self.value.startswith('-') or "=" in self.value: # Hack, there's not an easy way to check if it's a path
             return False
 
         return self.values or '/' in self.value or '\\' in self.value
