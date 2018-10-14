@@ -110,6 +110,7 @@ class Target:
         self.variables = []
         self.arg = ""
         self.description = ""
+        self.history = False
 
         self.loadJson()
 
@@ -233,6 +234,9 @@ def loadJson():
                 return False
 
             t = Target(name)
+
+            if "history" in target:
+                t.history = target['history']
 
             if "uses" in target:
                 t.uses = target['uses']
@@ -434,6 +438,9 @@ def is_sourced(target):
 
     return True
 
+def history_folder():
+    return os.getenv('USE_HISTORY_FOLDER', '')
+
 def source_target(target):
     if target.name in currentTargets():
         return True
@@ -457,6 +464,10 @@ def source_target(target):
     newCurTargets = string.join(currentTargets(), ';')
 
     os.environ['USE_CURRENT_TARGETS'] = newCurTargets + ";" + target.displayName()
+
+    hist_folder = history_folder()
+    if hist_folder and target.history:
+        os.environ['HISTFILE'] = hist_folder + '/' + target.name + '.hist'
 
     for targetName in target.uses_after:
         if not source_target(getTarget(targetName)):
