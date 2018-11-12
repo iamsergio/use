@@ -238,8 +238,9 @@ def loadJson():
             if "history" in target:
                 t.history = target['history']
 
-            if "uses" in target:
-                t.uses = target['uses']
+            uses = read_json_property("uses", target)
+            if uses is not None:
+                t.uses = uses
 
             if "uses_after" in target:
                 t.uses_after = target['uses_after']
