@@ -394,6 +394,12 @@ def shellForOS(filename = ""):
         return 'cmd'
 
     envShell = os.getenv('SHELL')
+    if _is_debug:
+        print "shell=" + envShell
+
+    # Workaround Git Bash bug on Windows, where it prepends the current cwd:
+    if envShell.endswith('/bash') or envShell.endswith('\\bash'):
+        envShell = 'bash'
 
     if envShell and envShell != '/bin/false':
         return envShell
@@ -404,12 +410,19 @@ def shellForOS(filename = ""):
     return 'bash'
 
 def run_shell(cwd):
+    global _is_debug
+    if _is_debug:
+        print "run_shell: cwd=" + cwd
+
     cmd = ""
     shell =  shellForOS()
     if _rcfile and 'bash' in shell:
         cmd = shell + " --rcfile " + _rcfile
     else:
         cmd = shell
+
+    if _is_debug:
+        print "run_shell: cmd=" + cmd
 
     old_cwd = ""
     if cwd:
@@ -420,7 +433,6 @@ def run_shell(cwd):
             print("cwd Path doesn't exist: " + cwd)
     result = True
     try:
-        global _is_debug
         if _is_debug:
             print 'Running ' + cmd
 
@@ -497,6 +509,9 @@ def use_target(target):
 
     success = False
     if source_target(target):
+        if _is_debug:
+            print "cwd=" + target.cwd
+            print "cleanup_cwd(target.cwd)=" + cleanup_cwd(target.cwd)
         success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
     else:
         success = False
