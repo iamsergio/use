@@ -398,8 +398,9 @@ def shellForOS(filename = ""):
         print "shell=" + envShell
 
     # Workaround Git Bash bug on Windows, where it prepends the current cwd:
-    if envShell.endswith('/bash') or envShell.endswith('\\bash'):
-        envShell = 'bash'
+    if envShell is not None:
+        if envShell.endswith('/bash') or envShell.endswith('\\bash'):
+            envShell = 'bash'
 
     if envShell and envShell != '/bin/false':
         return envShell
