@@ -498,7 +498,7 @@ def use_target(target):
     if is_sourced(target):
         return True
 
-    if '--keep' not in _switches:
+    if '--keep' not in _switches and not target.name.startswith('add-'):
         if not reset_env(): # source default.source
             return False
 
