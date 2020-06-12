@@ -460,7 +460,15 @@ def source_target(target):
         return True
 
     for targetName in target.uses:
-        if not source_target(getTarget(targetName)):
+
+        targetToUse = getTarget(targetName)
+        generic = getGenericTargetAndArg(targetName)
+        if generic and generic['arg'] != '%':
+            # Argument is already set, so use it. For example
+            # 'qt-installer-mingw-%' uses 'mingw64-730', so use 730 for mingw64, instead of the top-level argument passed (5.14.2 for example)
+            targetToUse.arg = generic['arg']
+
+        if not source_target(targetToUse):
             return False
 
     filename = filenameForTarget(target)
