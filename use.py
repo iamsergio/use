@@ -1,6 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
-import sys, os, json, platform
+import sys, os, json, platform, io
 import subprocess, string, re
 
 _json_config_file = os.getenv('USE_CONFIG_FILE')
@@ -17,11 +17,11 @@ _is_debug = '--debug' in sys.argv
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper', '--debug']
 
 if not _json_config_file:
-    print "Configuration file not found!\nSet the env variable USE_CONFIG_FILE, point it to your json file.\n"
+    print("Configuration file not found!\nSet the env variable USE_CONFIG_FILE, point it to your json file.\n")
     sys.exit(-1)
 
 if not _targets_folder:
-    print "Use folder not found!\nSet env variable USE_TARGETS_FOLDER, point it to your folder with env scripts.\n"
+    print("Use folder not found!\nSet env variable USE_TARGETS_FOLDER, point it to your folder with env scripts.\n")
     sys.exit(-1)
 
 def osType(): # returns 'nt' or 'posix'
@@ -124,7 +124,7 @@ class Target:
 
     def env_var_from_json(self, json):
         var = EnvVariable()
-        key = json.keys()[0]
+        key = list(json.keys())[0]
         var.name = key
         value = json[key]
         value_is_list = type(value) == type([])
@@ -156,11 +156,11 @@ class Target:
 
     def loadJsonFile(self, filename):
         if not os.path.exists(filename):
-            print "File doesn't exist: " + filename
+            print("File doesn't exist: " + filename)
             return False
 
         f = open(filename, 'r')
-        # print "Processing " + filename
+        # print("Processing " + filename
         contents = f.read()
         f.close()
         decoded = json.loads(contents)
@@ -195,17 +195,17 @@ class Target:
         return True
 
 def printUsage():
-    print "Usage:"
-    print sys.argv[0] + " <target>\n"
+    print("Usage:")
+    print(sys.argv[0] + " <target>\n")
 
-    print "Available targets:\n"
+    print("Available targets:\n")
     for target in _targets:
         t = _targets[target]
         if not t.hidden:
             str = "  " + target
             if t.description:
                 str += " (" + t.description + ")"
-            print str
+            print(str)
     sys.exit(1)
 
 def cleanup_cwd(cwd):
@@ -230,7 +230,7 @@ def loadJson():
             if "name" in target:
                 name = target['name']
             else:
-                print "Missing name for target"
+                print("Missing name for target")
                 return False
 
             t = Target(name)
@@ -249,7 +249,7 @@ def loadJson():
             if cwd:
                 t.cwd = cwd
 
-            #print "cwd " + str(cwd)
+            #print("cwd " + str(cwd)
 
             if "rename_yakuake_to" in target:
                 t.yakuake_tab_name = target['rename_yakuake_to']
@@ -268,10 +268,10 @@ def loadJson():
         _rcfile = decoded['rcfile']
 
     if _is_debug:
-        print "_rcfile=" + _rcfile
+        print("_rcfile=" + _rcfile)
 
     if _rcfile and not os.path.exists(_rcfile):
-        print "Requested rcfile doesn't exist: " + _rcfile
+        print("Requested rcfile doesn't exist: " + _rcfile)
         return False
 
     if "ask_for_ssh_keys" in decoded:
@@ -305,7 +305,7 @@ def getTarget(name):
     if genericTarget and genericTarget["name"] + "-%" in _targets:
         return _targets[genericTarget["name"] + "-%"]
 
-    print "Unknown target: " + name
+    print("Unknown target: " + name)
     printUsage()
 
 def source_single_json(target):
@@ -322,7 +322,7 @@ def source_single_json(target):
                 value = to_native_path(value)
             os.environ[v.name] = value
             if _is_debug:
-                print "var : " + v.name + "=" + value + " (v.isPath=" + str(v.isPath()) + ")"
+                print("var : " + v.name + "=" + value + " (v.isPath=" + str(v.isPath()) + ")")
         else: # list case
             value = list_separator()
             for list_token in v.values:
@@ -333,7 +333,7 @@ def source_single_json(target):
 
             os.environ[v.name] = value.strip(list_separator())
             if _is_debug:
-                print "List: " + v.name + "=" +  value.strip(list_separator())
+                print("List: " + v.name + "=" +  value.strip(list_separator()))
 
 def source_single_file(filename):
     command = ""
@@ -347,18 +347,19 @@ def source_single_file(filename):
     else:
         command = [shell, '-c', 'source ' + filename_cmd + ' && env']
 
-    # print "Sourcing " + filename
+    # print("Sourcing " + filename
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
 
-    print "Sourcing " + to_native_path(filename_cmd)
+    print("Sourcing " + to_native_path(filename_cmd))
 
+    #for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
     for line in proc.stdout:
         (key, _, value) = line.partition("=")
         if key and not key.startswith('BASH_FUNC_'):
             try:
                 os.environ[key] = value.strip()
             except:
-                print "Error importing key=" + key + "; with value=" + value.strip()
+                print("Error importing key=" + key + "; with value=" + value.strip())
                 throw
     proc.communicate()
 
@@ -373,7 +374,7 @@ def filenameForTarget(target):
     filename = _targets_folder + "/" + target.name + extensionForScript()
     if os.path.exists(target.jsonFileName()) or target.isGeneric():
         if os.path.exists(filename):
-            print "Favoring .json over " + filename
+            print("Favoring .json over " + filename)
 
         return target.jsonFileName()
 
@@ -386,7 +387,7 @@ def currentTargets():
     return targets.split(';')
 
 def currentTargetsStr():
-    return string.join(currentTargets(), ' ')
+    return ' '.join(currentTargets())
 
 def shellForOS(filename = ""):
     # .bat files are always sourced by cmd. Use .json if you don't like this
@@ -395,7 +396,7 @@ def shellForOS(filename = ""):
 
     envShell = os.getenv('SHELL')
     if _is_debug:
-        print "shell=" + envShell
+        print("shell=" + envShell)
 
     # Workaround Git Bash bug on Windows, where it prepends the current cwd:
     if envShell is not None:
@@ -413,7 +414,7 @@ def shellForOS(filename = ""):
 def run_shell(cwd):
     global _is_debug
     if _is_debug:
-        print "run_shell: cwd=" + cwd
+        print("run_shell: cwd=" + cwd)
 
     cmd = ""
     shell =  shellForOS()
@@ -423,7 +424,7 @@ def run_shell(cwd):
         cmd = shell
 
     if _is_debug:
-        print "run_shell: cmd=" + cmd
+        print("run_shell: cmd=" + cmd)
 
     old_cwd = ""
     if cwd:
@@ -435,7 +436,7 @@ def run_shell(cwd):
     result = True
     try:
         if _is_debug:
-            print 'Running ' + cmd
+            print('Running ' + cmd)
 
         result = os.system(cmd) == 0
     except:
@@ -477,13 +478,13 @@ def source_target(target):
         arg = ""
         if target.arg:
             arg = " " + target.arg
-        print "Sourcing " + to_native_path(filename) + arg
+        print("Sourcing " + to_native_path(filename) + arg)
         source_single_json(target)
     else:
         if os.path.exists(filename):
             source_single_file(filename)
 
-    newCurTargets = string.join(currentTargets(), ';')
+    newCurTargets = ';'.join(currentTargets())
 
     os.environ['USE_CURRENT_TARGETS'] = newCurTargets + ";" + target.displayName()
 
@@ -519,8 +520,8 @@ def use_target(target):
     success = False
     if source_target(target):
         if _is_debug:
-            print "cwd=" + target.cwd
-            print "cleanup_cwd(target.cwd)=" + cleanup_cwd(target.cwd)
+            print("cwd=" + target.cwd)
+            print("cleanup_cwd(target.cwd)=" + cleanup_cwd(target.cwd))
         success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
     else:
         success = False
@@ -546,7 +547,7 @@ def process_arguments():
             _arguments.remove(a)
             _switches.append(a)
         elif a.startswith('--') and not '--bash-autocomplete-helper' in _arguments:
-            print "Invalid switch: " + a
+            print("Invalid switch: " + a)
             sys.exit(-1)
 
 def source_default():
@@ -597,25 +598,25 @@ if '--config' in _switches or '--configure' in _switches or '--conf' in _switche
 source_default()
 
 if not loadJson():
-    print "Error loading json"
+    print("Error loading json")
     sys.exit(1)
 
 if len(sys.argv) == 1:
-    print currentTargetsStr()
+    print(currentTargetsStr())
     sys.exit(-1)
 
 _targetName = sys.argv[1]
 
 if "%" in _targetName:
-    print "Pass an actual replacement to %"
+    print("Pass an actual replacement to %")
     sys.exit(-1)
 
 
 if '--edit' in _switches:
     filename = filenameForTarget(Target(_targetName))
-    print "Opening editor for " + filename
+    print("Opening editor for " + filename)
     if not open_editor(filename):
-        print "Error opening editor"
+        print("Error opening editor")
     sys.exit(0)
 
 if '--help' in _switches or '-h' in _switches:
@@ -639,7 +640,7 @@ if '--bash-autocomplete-helper' in _switches:
             if s.startswith(wordBeginning):
                 result = result + ' ' + s
 
-    print result.strip()
+    print(result.strip())
     sys.exit(0)
 
 if _ask_for_ssh_keys:
@@ -649,6 +650,6 @@ resolve_generic_targets(_targetName)
 t = getTarget(_targetName)
 
 if t.hidden:
-    print "Target is hidden!"
+    print("Target is hidden!")
 else:
     use_target(t)
