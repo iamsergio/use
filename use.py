@@ -269,6 +269,8 @@ def loadJson():
     elif "rcfile" in decoded:
         _rcfile = decoded['rcfile']
 
+    _rcfile = fill_placeholders(_rcfile)
+
     if _is_debug:
         print("_rcfile=" + _rcfile)
 
