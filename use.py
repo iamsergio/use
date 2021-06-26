@@ -352,9 +352,10 @@ def source_single_file(filename):
 
     print("Sourcing " + to_native_path(filename_cmd))
 
-    #for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+    # for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
     for line in proc.stdout:
-        (key, _, value) = line.partition("=")
+        foo = line.decode('utf-8').partition("=")
+        (key, _, value) = foo
         if key and not key.startswith('BASH_FUNC_'):
             try:
                 os.environ[key] = value.strip()
