@@ -13,6 +13,7 @@ _configure = False
 _switches = []
 _ask_for_ssh_keys = False
 _is_debug = '--debug' in sys.argv
+_desired_command = ''
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper', '--debug']
 
@@ -196,7 +197,8 @@ class Target:
 
 def printUsage():
     print("Usage:")
-    print(sys.argv[0] + " <target>\n")
+    print(sys.argv[0] + " <target>")
+    print(sys.argv[0] + " <target> --command=<command>\n")
 
     print("Available targets:\n")
     for target in _targets:
@@ -412,6 +414,9 @@ def shellForOS(filename = ""):
 
     return 'bash'
 
+def run_command(cmd):
+    return os.system(cmd) == 0
+
 def run_shell(cwd):
     global _is_debug
     if _is_debug:
@@ -439,7 +444,7 @@ def run_shell(cwd):
         if _is_debug:
             print('Running ' + cmd)
 
-        result = os.system(cmd) == 0
+        result = run_command(cmd)
     except:
         pass
 
@@ -504,7 +509,7 @@ def reset_env():
     return source_target(getTarget("default"))
 
 def use_target(target):
-    global _switches, _rename_yakuake_tab
+    global _switches, _rename_yakuake_tab, _desired_command
     if is_sourced(target):
         return True
 
@@ -523,7 +528,11 @@ def use_target(target):
         if _is_debug:
             print("cwd=" + target.cwd)
             print("cleanup_cwd(target.cwd)=" + cleanup_cwd(target.cwd))
-        success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
+        if _desired_command:
+            # When --command=foo is passed, we run foo with the desired env, instead of opening an hanging shell
+            success = run_command(_desired_command)
+        else:
+            success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
     else:
         success = False
 
@@ -542,11 +551,14 @@ def open_editor(filename):
     return os.system(editor() + " " + filename) == 0
 
 def process_arguments():
-    global _switches
+    global _switches, _desired_command
     for a in _arguments:
         if a in POSSIBLE_SWITCHES:
             _arguments.remove(a)
             _switches.append(a)
+        elif a.startswith('--command='):
+            _desired_command = a.split('=')[1]
+            _arguments.remove(a)
         elif a.startswith('--') and not '--bash-autocomplete-helper' in _arguments:
             print("Invalid switch: " + a)
             sys.exit(-1)
