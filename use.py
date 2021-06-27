@@ -3,8 +3,61 @@
 import sys, os, json, platform, io
 import subprocess, string, re
 
-_json_config_file = os.getenv('USE_CONFIG_FILE')
-_targets_folder = os.getenv('USE_TARGETS_FOLDER')
+def isWindows():
+    return platform.system() == "Windows"
+
+def usePlatform(): # returns 'windows' or 'posix'
+    if isWindows():
+        return 'windows'
+    return 'posix'
+
+def fill_placeholders(value):
+    placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
+    for placeholder in placeholders:
+        value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
+
+    return value
+
+# Represents the $HOME/.use.conf
+class UseConf:
+    def __init__(self, use_conf_filename):
+        self.use_targets_folder = ""
+        self.use_conf_filename = use_conf_filename
+
+        if not self.targetsFolder():
+            print("Use folder not found!\nSet 'use_targets_folder' variable in ~/.use.conf, point it to your folder with env scripts.\n")
+            sys.exit(-1)
+        if not self.targetsJsonFilename():
+            print("Configuration file not found!\nSet the env variable USES_LIST_FILE, point it to your json file.\n")
+            sys.exit(-1)
+
+        self.loadJson()
+
+    def loadJson(self):
+        if not os.path.exists(self.use_conf_filename):
+            print("Error: File doesn't exist: " + self.use_conf_filename)
+            sys.exit(-1)
+            return False
+
+        f = open(self.use_conf_filename, 'r')
+        contents = f.read()
+        f.close()
+        decoded = json.loads(contents)
+
+        if (decoded['envs']):
+            for env_name in decoded['envs']:
+                os.environ[env_name] = decoded['envs'][env_name]
+
+        self.use_targets_folder = fill_placeholders(decoded['use_targets_folder'])
+        os.environ['USE_TARGETS_FOLDER'] = self.use_targets_folder
+
+    def targetsFolder(self):
+        return self.use_targets_folder + '/' + usePlatform() + '/'
+
+    def targetsJsonFilename(self):
+        return self.targetsFolder() + '/../targets.json'
+
+_use_conf = UseConf(os.environ['HOME'] + '/.use.conf')
 _rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
 _targets = {}
 _rcfile = ""
@@ -17,14 +70,6 @@ _desired_command = ''
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper', '--debug']
 
-if not _json_config_file:
-    print("Configuration file not found!\nSet the env variable USE_CONFIG_FILE, point it to your json file.\n")
-    sys.exit(-1)
-
-if not _targets_folder:
-    print("Use folder not found!\nSet env variable USE_TARGETS_FOLDER, point it to your folder with env scripts.\n")
-    sys.exit(-1)
-
 def osType(): # returns 'nt' or 'posix'
     return os.name
 
@@ -33,9 +78,6 @@ def platformName(): # returns 'Windows', 'Linux' or 'Darwin'
 
 def platformNameLowercase():
     return platformName().lower()
-
-def isWindows():
-    return platform.system() == "Windows"
 
 def isWSL():
     try:
@@ -60,13 +102,6 @@ def to_native_path(path):
     if path.endswith("\\") or (path.endswith('/') and path != '/'):
         path = path[:-1]
     return path
-
-def fill_placeholders(value):
-    placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
-    for placeholder in placeholders:
-        value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
-
-    return value
 
 # Reads a property from json, but tries several platform suffixes
 def read_json_property(propName, json):
@@ -116,7 +151,7 @@ class Target:
         self.loadJson()
 
     def jsonFileName(self):
-        return _targets_folder + "/../unified/" + self.name + ".json"
+        return _use_conf.targetsFolder() + "/../" + self.name + ".json"
 
     def yakuakeTabName(self):
         if self.isGeneric():
@@ -218,7 +253,7 @@ def cleanup_cwd(cwd):
     return cwd
 
 def loadJson():
-    f = open(_json_config_file, 'r')
+    f = open(_use_conf.targetsJsonFilename(), 'r')
     contents = f.read()
     f.close()
 
@@ -376,7 +411,7 @@ def extensionForScript():
     return ".source"
 
 def filenameForTarget(target):
-    filename = _targets_folder + "/" + target.name + extensionForScript()
+    filename = _use_conf.targetsFolder() + "/" + target.name + extensionForScript()
     if os.path.exists(target.jsonFileName()) or target.isGeneric():
         if os.path.exists(filename):
             print("Favoring .json over " + filename)
@@ -607,7 +642,7 @@ def resolve_generic_targets(name):
 process_arguments()
 
 if '--config' in _switches or '--configure' in _switches or '--conf' in _switches:
-    open_editor(_json_config_file)
+    open_editor(_use_conf.targetsJsonFilename())
     sys.exit(1)
 
 source_default()
