@@ -18,6 +18,12 @@ def fill_placeholders(value):
 
     return value
 
+def to_native_path(path):
+    path = os.path.abspath(path)
+    if path.endswith("\\") or (path.endswith('/') and path != '/'):
+        path = path[:-1]
+    return path
+
 # Represents the $HOME/.use.conf
 class UseConf:
     def __init__(self, use_conf_filename):
@@ -55,7 +61,7 @@ class UseConf:
         return self.use_targets_folder + '/' + usePlatform() + '/'
 
     def targetsJsonFilename(self):
-        return self.targetsFolder() + '/../targets.json'
+        return to_native_path(self.targetsFolder() + '/../targets.json')
 
 _use_conf = UseConf(os.environ['HOME'] + '/.use.conf')
 _rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
@@ -67,8 +73,12 @@ _switches = []
 _ask_for_ssh_keys = False
 _is_debug = '--debug' in sys.argv
 _desired_command = ''
+_desired_cwd = ''
+_silent = False
+_ignore = ''
 
-POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help', '-h', '--bash-autocomplete-helper', '--debug']
+POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
+'-h', '--bash-autocomplete-helper', '--debug', '--silent']
 
 def osType(): # returns 'nt' or 'posix'
     return os.name
@@ -96,12 +106,6 @@ def list_separator():
     if os.name == 'nt':
         return ';'
     return ':'
-
-def to_native_path(path):
-    path = os.path.abspath(path)
-    if path.endswith("\\") or (path.endswith('/') and path != '/'):
-        path = path[:-1]
-    return path
 
 # Reads a property from json, but tries several platform suffixes
 def read_json_property(propName, json):
@@ -233,7 +237,7 @@ class Target:
 def printUsage():
     print("Usage:")
     print(sys.argv[0] + " <target>")
-    print(sys.argv[0] + " <target> --command=<command>\n")
+    print(sys.argv[0] + " <target> [--command=<command>][--ignore=<target>]\n")
 
     print("Available targets:\n")
     for target in _targets:
@@ -375,6 +379,7 @@ def source_single_json(target):
                 print("List: " + v.name + "=" +  value.strip(list_separator()))
 
 def source_single_file(filename):
+    global _silent
     command = ""
 
     filename_cmd = filename
@@ -386,10 +391,10 @@ def source_single_file(filename):
     else:
         command = [shell, '-c', 'source ' + filename_cmd + ' && env']
 
-    # print("Sourcing " + filename
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
 
-    print("Sourcing " + to_native_path(filename_cmd))
+    if not _silent:
+        print("Sourcing " + to_native_path(filename_cmd))
 
     # for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
     for line in proc.stdout:
@@ -500,10 +505,14 @@ def history_folder():
     return os.getenv('USE_HISTORY_FOLDER', '')
 
 def source_target(target):
+    global _silent
     if target.name in currentTargets():
         return True
 
     for targetName in target.uses:
+        if targetName == _ignore:
+            # user passed --ignore=foo
+            continue
 
         targetToUse = getTarget(targetName)
         generic = getGenericTargetAndArg(targetName)
@@ -521,7 +530,8 @@ def source_target(target):
         arg = ""
         if target.arg:
             arg = " " + target.arg
-        print("Sourcing " + to_native_path(filename) + arg)
+        if not _silent:
+            print("Sourcing " + to_native_path(filename) + arg)
         source_single_json(target)
     else:
         if os.path.exists(filename):
@@ -546,7 +556,7 @@ def reset_env():
     return source_target(getTarget("default"))
 
 def use_target(target):
-    global _switches, _rename_yakuake_tab, _desired_command
+    global _switches, _rename_yakuake_tab, _desired_command, _desired_cwd
     if is_sourced(target):
         return True
 
@@ -566,7 +576,11 @@ def use_target(target):
             print("cwd=" + target.cwd)
             print("cleanup_cwd(target.cwd)=" + cleanup_cwd(target.cwd))
         if _desired_command:
+            if _desired_cwd:
+                os.chdir(_desired_cwd)
             # When --command=foo is passed, we run foo with the desired env, instead of opening an hanging shell
+            if _is_debug:
+                print("Desired Command=" + _desired_command + " ; _desired_cwd=" + _desired_cwd)
             success = run_command(_desired_command)
         else:
             success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
@@ -588,17 +602,26 @@ def open_editor(filename):
     return os.system(editor() + " " + filename) == 0
 
 def process_arguments():
-    global _switches, _desired_command
-    for a in _arguments:
+    global _switches, _desired_command, _desired_cwd, _silent, _ignore
+    argscopy = _arguments.copy()
+
+    for a in argscopy:
         if a in POSSIBLE_SWITCHES:
             _arguments.remove(a)
             _switches.append(a)
         elif a.startswith('--command='):
-            _desired_command = a.split('=')[1]
+            _desired_command = a.split('--command=')[1]
+            _arguments.remove(a)
+        elif a.startswith('--cwd='):
+            _desired_cwd = a.split('--cwd=')[1]
+            _arguments.remove(a)
+        elif a.startswith('--ignore='):
+            _ignore = a.split('--ignore=')[1]
             _arguments.remove(a)
         elif a.startswith('--') and not '--bash-autocomplete-helper' in _arguments:
             print("Invalid switch: " + a)
             sys.exit(-1)
+    _silent = '--silent' in _switches
 
 def source_default():
     t = Target("default")
@@ -611,7 +634,6 @@ def ask_for_ssh_keys():
         return os.system("ssh-add") == 0
 
     return True
-
 
 def first_generic_target(targetName):
     if targetName in _targets:
@@ -702,4 +724,5 @@ t = getTarget(_targetName)
 if t.hidden:
     print("Target is hidden!")
 else:
-    use_target(t)
+    if not use_target(t):
+        sys.exit(1)
