@@ -83,6 +83,15 @@ POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '-
 def osType(): # returns 'nt' or 'posix'
     return os.name
 
+# Like platformName() but will return "DarwinArm" for Apple Sillicon macs
+# Brew for some reason uses /opt in arm64 macs, so we need to distinguish
+def platformNameWithArch():
+    plat = platform.system()
+    if plat == 'Darwin' and platform.machine() == 'arm64':
+        return 'DarwinArm'
+
+    return plat
+
 def platformName(): # returns 'Windows', 'Linux' or 'Darwin'
     return platform.system()
 
@@ -211,8 +220,14 @@ class Target:
                 self.variables.append(self.env_var_from_json(env_var))
 
         # now source 'Linux', 'Darwin'or 'Windows', which have precedence
-        if platformName() in decoded:
-            for env_var in decoded[platformName()]:
+
+        # Try DarwinArm before the generic Darwin, as Brew on arm uses different install paths
+        plat = platformNameWithArch()
+        if plat not in decoded:
+            plat = platformName()
+
+        if plat in decoded:
+            for env_var in decoded[plat]:
                 self.variables.append(self.env_var_from_json(env_var))
 
         if isWSL() and "Windows-WSL" in decoded:
