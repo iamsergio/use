@@ -250,11 +250,7 @@ def printUsage():
     sys.exit(1)
 
 def cleanup_cwd(cwd):
-    if cwd.startswith("$"):
-        env_var_name = cwd[1:]
-        if env_var_name and env_var_name in os.environ:
-            return os.environ[env_var_name]
-    return cwd
+    return fill_placeholders(cwd)
 
 def loadJson():
     f = open(_use_conf.targetsJsonFilename(), 'r')
