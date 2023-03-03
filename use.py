@@ -1,22 +1,32 @@
 #!/usr/bin/env python3
 
-import sys, os, json, platform, io
-import subprocess, string, re
+import sys
+import os
+import json
+import platform
+import io
+import subprocess
+import string
+import re
+
 
 def isWindows():
     return platform.system() == "Windows"
 
-def usePlatform(): # returns 'windows' or 'posix'
+
+def usePlatform():  # returns 'windows' or 'posix'
     if isWindows():
         return 'windows'
     return 'posix'
 
+
 def fill_placeholders(value):
-    placeholders = re.findall('\$\{(.*?)\}', value) # searches for ${foo}
+    placeholders = re.findall('\$\{(.*?)\}', value)  # searches for ${foo}
     for placeholder in placeholders:
         value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
 
     return value
+
 
 def to_native_path(path):
     path = os.path.abspath(path)
@@ -25,6 +35,8 @@ def to_native_path(path):
     return path
 
 # Represents the $HOME/.use.conf
+
+
 class UseConf:
     def __init__(self, use_conf_filename):
         self.use_targets_folder = ""
@@ -63,6 +75,7 @@ class UseConf:
     def targetsJsonFilename(self):
         return to_native_path(self.targetsFolder() + '/../targets.json')
 
+
 _use_conf = UseConf(os.environ['HOME'] + '/.use.conf')
 _rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
 _targets = {}
@@ -78,13 +91,16 @@ _silent = False
 _ignore = ''
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
-'-h', '--bash-autocomplete-helper', '--debug', '--silent']
+                     '-h', '--bash-autocomplete-helper', '--debug', '--silent']
 
-def osType(): # returns 'nt' or 'posix'
+
+def osType():  # returns 'nt' or 'posix'
     return os.name
 
 # Like platformName() but will return "DarwinArm" for Apple Sillicon macs
 # Brew for some reason uses /opt in arm64 macs, so we need to distinguish
+
+
 def platformNameWithArch():
     plat = platform.system()
     if plat == 'Darwin' and platform.machine() == 'arm64':
@@ -92,24 +108,30 @@ def platformNameWithArch():
 
     return plat
 
-def platformName(): # returns 'Windows', 'Linux' or 'Darwin'
+
+def platformName():  # returns 'Windows', 'Linux' or 'Darwin'
     return platform.system()
+
 
 def platformNameLowercase():
     return platformName().lower()
 
+
 def isWSL():
     try:
-        f = open('/proc/version','r')
+        f = open('/proc/version', 'r')
         return 'microsoft' in f.read().lower()
     except:
         return False
 
+
 def isLinux():
     return platform.system() == "Linux"
 
+
 def isBash():
     return "bash" in os.getenv("SHELL")
+
 
 def list_separator():
     if os.name == 'nt':
@@ -117,6 +139,8 @@ def list_separator():
     return ':'
 
 # Reads a property from json, but tries several platform suffixes
+
+
 def read_json_property(propName, json):
     # First try with OS qualification
     # for example, if propName is "cwd", we try "cwd_windows".
@@ -136,16 +160,19 @@ def read_json_property(propName, json):
 
     return None
 
+
 class EnvVariable:
     def __init__(self):
         self.name = ""
         self.value = ""
         self.values = []
+
     def isPath(self):
-        if self.value.startswith('-') or "=" in self.value: # Hack, there's not an easy way to check if it's a path
+        if self.value.startswith('-') or "=" in self.value:  # Hack, there's not an easy way to check if it's a path
             return False
 
         return self.values or '/' in self.value or '\\' in self.value
+
 
 class Target:
     def __init__(self, tname):
@@ -249,6 +276,7 @@ class Target:
 
         return True
 
+
 def printUsage():
     print("Usage:")
     print(sys.argv[0] + " <target>")
@@ -264,8 +292,10 @@ def printUsage():
             print(str)
     sys.exit(1)
 
+
 def cleanup_cwd(cwd):
     return fill_placeholders(cwd)
+
 
 def loadJson():
     f = open(_use_conf.targetsJsonFilename(), 'r')
@@ -301,7 +331,7 @@ def loadJson():
             if cwd:
                 t.cwd = cwd
 
-            #print("cwd " + str(cwd)
+            # print("cwd " + str(cwd)
 
             if "rename_yakuake_to" in target:
                 t.yakuake_tab_name = target['rename_yakuake_to']
@@ -333,12 +363,13 @@ def loadJson():
 
     return True
 
+
 def getGenericTargetAndArg(name):
     candidates = []
     for targetName in _targets.keys():
         target = _targets[targetName]
         if target.isGeneric():
-            targetName = target.simpleName() # Example "qt-" instead of "qt-%"
+            targetName = target.simpleName()  # Example "qt-" instead of "qt-%"
             if name.startswith(targetName):
                 candidates.append(targetName)
 
@@ -346,9 +377,10 @@ def getGenericTargetAndArg(name):
     if candidates:
         candidates.sort(key=len, reverse=True)
         arg = name.replace(candidates[0] + "-", "")
-        return { "name" : candidates[0], "arg" : arg }
+        return {"name": candidates[0], "arg": arg}
 
     return {}
+
 
 def getTarget(name):
     if name in _targets:
@@ -361,6 +393,7 @@ def getTarget(name):
 
     print("Unknown target: " + name)
     printUsage()
+
 
 def source_single_json(target):
     for v in target.variables:
@@ -377,7 +410,7 @@ def source_single_json(target):
             os.environ[v.name] = value
             if _is_debug:
                 print("var : " + v.name + "=" + value + " (v.isPath=" + str(v.isPath()) + ")")
-        else: # list case
+        else:  # list case
             value = list_separator()
             for list_token in v.values:
                 list_token = fill_placeholders(list_token)
@@ -387,7 +420,8 @@ def source_single_json(target):
 
             os.environ[v.name] = value.strip(list_separator())
             if _is_debug:
-                print("List: " + v.name + "=" +  value.strip(list_separator()))
+                print("List: " + v.name + "=" + value.strip(list_separator()))
+
 
 def source_single_file(filename):
     global _silent
@@ -402,7 +436,7 @@ def source_single_file(filename):
     else:
         command = [shell, '-c', 'source ' + filename_cmd + ' && env']
 
-    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
 
     if not _silent:
         print("Sourcing " + to_native_path(filename_cmd))
@@ -421,10 +455,12 @@ def source_single_file(filename):
 
     return True
 
+
 def extensionForScript():
     if isWindows():
         return ".bat"
     return ".source"
+
 
 def filenameForTarget(target):
     filename = _use_conf.targetsFolder() + "/" + target.name + extensionForScript()
@@ -436,16 +472,19 @@ def filenameForTarget(target):
 
     return filename
 
+
 def currentTargets():
     targets = os.getenv('USE_CURRENT_TARGETS')
     if not targets:
         return []
     return targets.split(';')
 
+
 def currentTargetsStr():
     return ' '.join(currentTargets())
 
-def shellForOS(filename = ""):
+
+def shellForOS(filename=""):
     # .bat files are always sourced by cmd. Use .json if you don't like this
     if filename.endswith(".bat") or filename.endswith(".cmd"):
         return 'cmd'
@@ -467,8 +506,10 @@ def shellForOS(filename = ""):
 
     return 'bash'
 
+
 def run_command(cmd):
     return os.system(cmd) == 0
+
 
 def run_shell(cwd):
     global _is_debug
@@ -476,7 +517,7 @@ def run_shell(cwd):
         print("run_shell: cwd=" + cwd)
 
     cmd = ""
-    shell =  shellForOS()
+    shell = shellForOS()
     if _rcfile and 'bash' in shell:
         cmd = shell + " --rcfile " + _rcfile
     else:
@@ -506,14 +547,17 @@ def run_shell(cwd):
 
     return result
 
+
 def is_sourced(target):
     if target.displayName() not in currentTargets():
         return False
 
     return True
 
+
 def history_folder():
     return os.getenv('USE_HISTORY_FOLDER', '')
+
 
 def source_target(target):
     global _silent
@@ -562,9 +606,11 @@ def source_target(target):
 
     return True
 
+
 def reset_env():
     os.environ['USE_CURRENT_TARGETS'] = ""
     return source_target(getTarget("default"))
+
 
 def use_target(target):
     global _switches, _rename_yakuake_tab, _desired_command, _desired_cwd
@@ -572,7 +618,7 @@ def use_target(target):
         return True
 
     if '--keep' not in _switches and not target.name.startswith('add-'):
-        if not reset_env(): # source default.source
+        if not reset_env():  # source default.source
             return False
 
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
@@ -594,7 +640,7 @@ def use_target(target):
                 print("Desired Command=" + _desired_command + " ; _desired_cwd=" + _desired_cwd)
             success = run_command(_desired_command)
         else:
-            success = run_shell(cleanup_cwd(target.cwd)) # this hangs here until user exits bash
+            success = run_shell(cleanup_cwd(target.cwd))  # this hangs here until user exits bash
     else:
         success = False
 
@@ -603,14 +649,17 @@ def use_target(target):
 
     return success
 
+
 def editor():
     ed = os.getenv('USE_EDITOR')
     if ed:
         return ed
     return 'kate'
 
+
 def open_editor(filename):
     return os.system(editor() + " " + filename) == 0
+
 
 def process_arguments():
     global _switches, _desired_command, _desired_cwd, _silent, _ignore
@@ -634,9 +683,11 @@ def process_arguments():
             sys.exit(-1)
     _silent = '--silent' in _switches
 
+
 def source_default():
     t = Target("default")
     _targets[t.name] = t
+
 
 def ask_for_ssh_keys():
     try:
@@ -645,6 +696,7 @@ def ask_for_ssh_keys():
         return os.system("ssh-add") == 0
 
     return True
+
 
 def first_generic_target(targetName):
     if targetName in _targets:
@@ -661,6 +713,7 @@ def first_generic_target(targetName):
 
     return None
 
+
 def resolve_generic_targets(name):
     genericTarget = first_generic_target(name)
 
@@ -670,7 +723,8 @@ def resolve_generic_targets(name):
             target = _targets[targetName]
             if target.isGeneric():
                 target.arg = genericTarget["arg"]
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 process_arguments()
 
