@@ -450,7 +450,7 @@ def source_single_file(filename):
                 os.environ[key] = value.strip()
             except:
                 print("Error importing key=" + key + "; with value=" + value.strip())
-                throw
+                raise
     proc.communicate()
 
     return True
