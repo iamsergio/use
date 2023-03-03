@@ -793,6 +793,10 @@ t = getTarget(_targetName)
 
 if t.hidden:
     print("Target is hidden!")
-else:
-    if not use_target(t):
-        sys.exit(1)
+    sys.exit(0)
+
+# The actual stuff
+result = use_target(t)
+
+if not result:
+    sys.exit(1)
