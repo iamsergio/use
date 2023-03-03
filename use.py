@@ -400,7 +400,10 @@ def getTarget(name):
 def set_env_variable(key, value):
     os.environ[key] = value
     if _print_env_only:
-        print(f"{key}={value}")
+        if ' ' in value or ';' in value:
+            print(f'{key}="{value}"')
+        else:
+            print(f'{key}={value}')
 
 
 def source_single_json(target):
