@@ -89,6 +89,7 @@ _desired_command = ''
 _desired_cwd = ''
 _silent = False
 _ignore = ''
+_print_only = False
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
                      '-h', '--bash-autocomplete-helper', '--debug', '--silent']
@@ -280,7 +281,7 @@ class Target:
 def printUsage():
     print("Usage:")
     print(sys.argv[0] + " <target>")
-    print(sys.argv[0] + " <target> [--command=<command>][--ignore=<target>]\n")
+    print(sys.argv[0] + " <target> [--print-env-only] [--command=<command>][--ignore=<target>]\n")
 
     print("Available targets:\n")
     for target in _targets:
@@ -297,6 +298,7 @@ def cleanup_cwd(cwd):
     return fill_placeholders(cwd)
 
 
+# Loads targets.json file into _targets variable
 def loadJson():
     f = open(_use_conf.targetsJsonFilename(), 'r')
     contents = f.read()
@@ -662,7 +664,7 @@ def open_editor(filename):
 
 
 def process_arguments():
-    global _switches, _desired_command, _desired_cwd, _silent, _ignore
+    global _switches, _desired_command, _desired_cwd, _silent, _ignore, _print_only
     argscopy = _arguments.copy()
 
     for a in argscopy:
@@ -678,13 +680,16 @@ def process_arguments():
         elif a.startswith('--ignore='):
             _ignore = a.split('--ignore=')[1]
             _arguments.remove(a)
+        elif a.startswith('--print-env-only'):
+            _print_only = True
+            _arguments.remove(a)
         elif a.startswith('--') and not '--bash-autocomplete-helper' in _arguments:
             print("Invalid switch: " + a)
             sys.exit(-1)
     _silent = '--silent' in _switches
 
 
-def source_default():
+def read_default_json():
     t = Target("default")
     _targets[t.name] = t
 
@@ -732,7 +737,7 @@ if '--config' in _switches or '--configure' in _switches or '--conf' in _switche
     open_editor(_use_conf.targetsJsonFilename())
     sys.exit(1)
 
-source_default()
+read_default_json()
 
 if not loadJson():
     print("Error loading json")
