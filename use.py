@@ -614,7 +614,7 @@ def reset_env():
     return source_target(getTarget("default"))
 
 
-def use_target(target):
+def run_shell_for_target(target):
     global _switches, _rename_yakuake_tab, _desired_command, _desired_cwd
     if is_sourced(target):
         return True
@@ -796,7 +796,7 @@ if t.hidden:
     sys.exit(0)
 
 # The actual stuff
-result = use_target(t)
+result = run_shell_for_target(t)
 
 if not result:
     sys.exit(1)
