@@ -299,7 +299,7 @@ def cleanup_cwd(cwd):
 
 
 # Loads targets.json file into _targets variable
-def loadJson():
+def read_targets_json():
     f = open(_use_conf.targetsJsonFilename(), 'r')
     contents = f.read()
     f.close()
@@ -739,7 +739,7 @@ if '--config' in _switches or '--configure' in _switches or '--conf' in _switche
 
 read_default_json()
 
-if not loadJson():
+if not read_targets_json():
     print("Error loading json")
     sys.exit(1)
 
