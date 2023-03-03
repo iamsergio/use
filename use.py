@@ -89,10 +89,10 @@ _desired_command = ''
 _desired_cwd = ''
 _silent = False
 _ignore = ''
-_print_only = False
+_print_env_only = False
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
-                     '-h', '--bash-autocomplete-helper', '--debug', '--silent']
+                     '-h', '--bash-autocomplete-helper', '--debug', '--silent', '--print']
 
 
 def osType():  # returns 'nt' or 'posix'
@@ -281,7 +281,7 @@ class Target:
 def printUsage():
     print("Usage:")
     print(sys.argv[0] + " <target>")
-    print(sys.argv[0] + " <target> [--print-env-only] [--command=<command>][--ignore=<target>]\n")
+    print(sys.argv[0] + " <target> [--print] [--command=<command>][--ignore=<target>]\n")
 
     print("Available targets:\n")
     for target in _targets:
@@ -397,7 +397,14 @@ def getTarget(name):
     printUsage()
 
 
+def set_env_variable(key, value):
+    os.environ[key] = value
+    if _print_env_only:
+        print(f"{key}={value}")
+
+
 def source_single_json(target):
+    global _print_env_only, _is_debug
     for v in target.variables:
         if not v.name:
             continue
@@ -409,7 +416,8 @@ def source_single_json(target):
                 value = fill_placeholders(v.value)
             if v.isPath():
                 value = to_native_path(value)
-            os.environ[v.name] = value
+            set_env_variable(v.name, value)
+
             if _is_debug:
                 print("var : " + v.name + "=" + value + " (v.isPath=" + str(v.isPath()) + ")")
         else:  # list case
@@ -420,7 +428,8 @@ def source_single_json(target):
                     list_token = to_native_path(list_token)
                 value = value + list_separator() + list_token
 
-            os.environ[v.name] = value.strip(list_separator())
+            set_env_variable(v.name, value.strip(list_separator()))
+
             if _is_debug:
                 print("List: " + v.name + "=" + value.strip(list_separator()))
 
@@ -449,7 +458,7 @@ def source_single_file(filename):
         (key, _, value) = foo
         if key and not key.startswith('BASH_FUNC_'):
             try:
-                os.environ[key] = value.strip()
+                set_env_variable(key, value.strip())
             except:
                 print("Error importing key=" + key + "; with value=" + value.strip())
                 raise
@@ -561,6 +570,15 @@ def history_folder():
     return os.getenv('USE_HISTORY_FOLDER', '')
 
 
+def print_target(target):
+    global _print_env_only, _silent
+
+    # simpler to just reuse source_target, as it has some business logic
+    _print_env_only = True
+    _silent = True
+    source_target(target)
+
+
 def source_target(target):
     global _silent
     if target.name in currentTargets():
@@ -596,11 +614,11 @@ def source_target(target):
 
     newCurTargets = ';'.join(currentTargets())
 
-    os.environ['USE_CURRENT_TARGETS'] = newCurTargets + ";" + target.displayName()
+    set_env_variable('USE_CURRENT_TARGETS', newCurTargets + ";" + target.displayName())
 
     hist_folder = history_folder()
     if hist_folder and target.history:
-        os.environ['HISTFILE'] = hist_folder + '/' + target.name + '.hist'
+        set_env_variable('HISTFILE', hist_folder + '/' + target.name + '.hist')
 
     for targetName in target.uses_after:
         if not source_target(getTarget(targetName)):
@@ -664,7 +682,7 @@ def open_editor(filename):
 
 
 def process_arguments():
-    global _switches, _desired_command, _desired_cwd, _silent, _ignore, _print_only
+    global _switches, _desired_command, _desired_cwd, _silent, _ignore
     argscopy = _arguments.copy()
 
     for a in argscopy:
@@ -679,9 +697,6 @@ def process_arguments():
             _arguments.remove(a)
         elif a.startswith('--ignore='):
             _ignore = a.split('--ignore=')[1]
-            _arguments.remove(a)
-        elif a.startswith('--print-env-only'):
-            _print_only = True
             _arguments.remove(a)
         elif a.startswith('--') and not '--bash-autocomplete-helper' in _arguments:
             print("Invalid switch: " + a)
@@ -793,6 +808,10 @@ t = getTarget(_targetName)
 
 if t.hidden:
     print("Target is hidden!")
+    sys.exit(0)
+
+if '--print' in _switches:
+    print_target(t)
     sys.exit(0)
 
 # The actual stuff
