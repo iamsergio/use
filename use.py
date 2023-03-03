@@ -581,6 +581,10 @@ def print_target(target):
     _silent = True
     source_target(target)
 
+    cwd = cleanup_cwd(target.cwd)
+    if cwd:
+        print(f"cd {cwd}")
+
 
 def source_target(target):
     global _silent
