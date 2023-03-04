@@ -90,9 +90,11 @@ _desired_cwd = ''
 _silent = False
 _ignore = ''
 _print_env_only = False
+_print_env_to_file = False
+_env_lines = []
 
 POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
-                     '-h', '--bash-autocomplete-helper', '--debug', '--silent', '--print']
+                     '-h', '--bash-autocomplete-helper', '--debug', '--silent', '--print', '--print-to-file']
 
 
 def osType():  # returns 'nt' or 'posix'
@@ -281,7 +283,7 @@ class Target:
 def printUsage():
     print("Usage:")
     print(sys.argv[0] + " <target>")
-    print(sys.argv[0] + " <target> [--print] [--command=<command>][--ignore=<target>]\n")
+    print(sys.argv[0] + " <target> [--print|--print-to-file] [--command=<command>][--ignore=<target>]\n")
 
     print("Available targets:\n")
     for target in _targets:
@@ -400,10 +402,12 @@ def getTarget(name):
 def set_env_variable(key, value):
     os.environ[key] = value
     if _print_env_only:
+        line = ""
         if ' ' in value or ';' in value:
-            print(f'{key}="{value}"')
+            line = f'export {key}="{value}"'
         else:
-            print(f'{key}={value}')
+            line = f'export {key}={value}'
+        _env_lines.append(line)
 
 
 def source_single_json(target):
@@ -574,16 +578,23 @@ def history_folder():
 
 
 def print_target(target):
-    global _print_env_only, _silent
+    global _print_env_to_file, _silent
 
     # simpler to just reuse source_target, as it has some business logic
-    _print_env_only = True
-    _silent = True
     source_target(target)
 
     cwd = cleanup_cwd(target.cwd)
     if cwd:
-        print(f"cd {cwd}")
+        _env_lines.append(f'export PWD="{cwd}"')
+
+    # --print prints to stdout, while --print-to-file prints to file
+    if _print_env_to_file:
+        with open("/tmp/use.env", "w") as f:
+            for line in _env_lines:
+                f.write(line + "\n")
+    else:
+        for line in _env_lines:
+            print(line)
 
 
 def source_target(target):
@@ -641,12 +652,6 @@ def reset_env():
 
 def run_shell_for_target(target):
     global _switches, _rename_yakuake_tab, _desired_command, _desired_cwd
-    if is_sourced(target):
-        return True
-
-    if '--keep' not in _switches and not target.name.startswith('add-'):
-        if not reset_env():  # source default.source
-            return False
 
     # run qdbus before sourcing, otherwise it might use an incompatible Qt
     must_restore_yakuake = False
@@ -817,7 +822,19 @@ if t.hidden:
     print("Target is hidden!")
     sys.exit(0)
 
-if '--print' in _switches:
+_print_env_to_file = '--print-to-file' in _switches
+_print_env_only = '--print' in _switches or _print_env_to_file
+if _print_env_only:
+    _silent = True
+
+if is_sourced(t):
+    sys.exit(0)
+
+if '--keep' not in _switches and not t.name.startswith('add-'):
+    if not reset_env():  # source default.json
+        sys.exit(1)
+
+if _print_env_only:
     print_target(t)
     sys.exit(0)
 
