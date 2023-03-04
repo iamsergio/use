@@ -79,7 +79,6 @@ class UseConf:
 _use_conf = UseConf(os.environ['HOME'] + '/.use.conf')
 _rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
 _targets = {}
-_rcfile = ""
 _arguments = sys.argv[1:]
 _configure = False
 _switches = []
@@ -308,7 +307,7 @@ def read_targets_json():
 
     decoded = json.loads(contents)
 
-    global _rcfile, _ask_for_ssh_keys
+    global _ask_for_ssh_keys
 
     if "targets" in decoded:
         for target in decoded['targets']:
@@ -344,23 +343,6 @@ def read_targets_json():
                 t.hidden = target['hidden']
 
             _targets[t.name] = t
-
-    # platform specific rcfile takes precedence
-    if "rcfile_" + platformNameLowercase() in decoded:
-        _rcfile = decoded["rcfile_" + platformNameLowercase()]
-    elif "rcfile_" + os.name in decoded:
-        _rcfile = decoded["rcfile_" + os.name]
-    elif "rcfile" in decoded:
-        _rcfile = decoded['rcfile']
-
-    _rcfile = fill_placeholders(_rcfile)
-
-    if _is_debug:
-        print("_rcfile=" + _rcfile)
-
-    if _rcfile and not os.path.exists(_rcfile):
-        print("Requested rcfile doesn't exist: " + _rcfile)
-        return False
 
     if "ask_for_ssh_keys" in decoded:
         _ask_for_ssh_keys = decoded['ask_for_ssh_keys']
@@ -536,10 +518,7 @@ def run_shell(cwd):
 
     cmd = ""
     shell = shellForOS()
-    if _rcfile and 'bash' in shell:
-        cmd = shell + " --rcfile " + _rcfile
-    else:
-        cmd = shell
+    cmd = shell
 
     if _is_debug:
         print("run_shell: cmd=" + cmd)
