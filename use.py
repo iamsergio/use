@@ -9,91 +9,12 @@ import subprocess
 import string
 import re
 
+_print_env_only = '--print' in sys.argv or '--print-to-file' in sys.argv
+_print_env_to_file = '--print-to-file' in sys.argv
+
 
 def isWindows():
     return platform.system() == "Windows"
-
-
-def usePlatform():  # returns 'windows' or 'posix'
-    if isWindows():
-        return 'windows'
-    return 'posix'
-
-
-def fill_placeholders(value):
-    placeholders = re.findall('\$\{(.*?)\}', value)  # searches for ${foo}
-    for placeholder in placeholders:
-        value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
-
-    return value
-
-
-def to_native_path(path):
-    path = os.path.abspath(path)
-    if path.endswith("\\") or (path.endswith('/') and path != '/'):
-        path = path[:-1]
-    return path
-
-# Represents the $HOME/.use.conf
-
-
-class UseConf:
-    def __init__(self, use_conf_filename):
-        self.use_targets_folder = ""
-        self.use_conf_filename = use_conf_filename
-
-        if not self.targetsFolder():
-            print("Use folder not found!\nSet 'use_targets_folder' variable in ~/.use.conf, point it to your folder with env scripts.\n")
-            sys.exit(-1)
-        if not self.targetsJsonFilename():
-            print("Configuration file not found!\nSet the env variable USES_LIST_FILE, point it to your json file.\n")
-            sys.exit(-1)
-
-        self.loadJson()
-
-    def loadJson(self):
-        if not os.path.exists(self.use_conf_filename):
-            print("Error: File doesn't exist: " + self.use_conf_filename)
-            sys.exit(-1)
-            return False
-
-        f = open(self.use_conf_filename, 'r')
-        contents = f.read()
-        f.close()
-        decoded = json.loads(contents)
-
-        if (decoded['envs']):
-            for env_name in decoded['envs']:
-                os.environ[env_name] = decoded['envs'][env_name]
-
-        self.use_targets_folder = fill_placeholders(decoded['use_targets_folder'])
-        os.environ['USE_TARGETS_FOLDER'] = self.use_targets_folder
-
-    def targetsFolder(self):
-        return self.use_targets_folder + '/' + usePlatform() + '/'
-
-    def targetsJsonFilename(self):
-        return to_native_path(self.targetsFolder() + '/../targets.json')
-
-
-_use_conf = UseConf(os.environ['HOME'] + '/.use.conf')
-_rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
-_targets = {}
-_arguments = sys.argv[1:]
-_configure = False
-_switches = []
-_ask_for_ssh_keys = False
-_is_debug = '--debug' in sys.argv
-_desired_command = ''
-_desired_cwd = ''
-_silent = False
-_ignore = ''
-_print_env_only = False
-_print_env_to_file = False
-_env_lines = []
-
-POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
-                     '-h', '--bash-autocomplete-helper', '--debug', '--silent', '--print', '--print-to-file']
 
 
 def osType():  # returns 'nt' or 'posix'
@@ -135,8 +56,109 @@ def isBash():
     return "bash" in os.getenv("SHELL")
 
 
-def list_separator():
+def usePlatform():  # returns 'windows' or 'posix'
+    if isWindows():
+        return 'windows'
+    return 'posix'
+
+
+def fill_placeholders(value):
+    placeholders = re.findall('\$\{(.*?)\}', value)  # searches for ${foo}
+    for placeholder in placeholders:
+        value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
+
+    return value
+
+
+def to_native_path(path):
+    path = os.path.abspath(path)
+    if path.endswith("\\") or (path.endswith('/') and path != '/'):
+        path = path[:-1]
+    return path
+
+
+def unix_to_native(path):
+    if not isWindows():
+        return path
+    if (path.lower().startswith("/c/") or path.lower() == "/c"):
+        path = "C:" + path[2:]
+        path = path.replace("/", "\\")
+    return path
+
+
+def to_unix_path(path):
+    requiresConversion = isWindows() and isBash()
+    if not requiresConversion:
+        return path
+
+    if path.lower().startswith("/c/"):
+        path = path.replace("\\", "/")
+
+    if path.lower().startswith("c:"):
+        path = path.replace("c:", "/c")
+        path = path.replace("C:", "/C")
+        path = path.replace("\\", "/")
+
+    return path
+
+# Represents the $HOME/.use.conf
+
+
+class UseConf:
+    def __init__(self):
+        self.use_targets_folder = ""
+
+        if not self.targetsFolder():
+            print("Use folder not found!\nSet 'use_targets_folder' variable in ~/.use.conf, point it to your folder with env scripts.\n")
+            sys.exit(-1)
+        if not self.targetsJsonFilename():
+            print("Configuration file not found!\nSet the env variable USES_LIST_FILE, point it to your json file.\n")
+            sys.exit(-1)
+
+        os.environ['USE_TARGETS_FOLDER'] = self.useFolder()
+
+    def useFolder(self):
+        if isLinux():
+            return '/data/windows-linux-shared/use_scripts'
+        elif isWindows():
+            return 'c:\\data\\windows-linux-shared\\use_scripts'
+        else:
+            return '/Users/serj/data/windows-linux-shared/use_scripts'
+
+    def targetsFolder(self):
+        if isLinux():
+            return '/data/windows-linux-shared/use_scripts/posix'
+        elif isWindows():
+            return 'c:\\data\\windows-linux-shared\\use_scripts\\windows'
+        else:
+            return '/Users/serj/data/windows-linux-shared/use_scripts/posix'
+
+    def targetsJsonFilename(self):
+        return self.useFolder() + '/targets.json'
+
+
+_use_conf = UseConf()
+_rename_yakuake_tab = os.getenv('USE_YAKUAKE', '') == '1'
+_targets = {}
+_arguments = sys.argv[1:]
+_configure = False
+_switches = []
+_ask_for_ssh_keys = False
+_is_debug = '--debug' in sys.argv
+_desired_command = ''
+_desired_cwd = ''
+_silent = False
+_ignore = ''
+_env_lines = []
+
+POSSIBLE_SWITCHES = ['--keep', '--config', '--configure', '--edit', '--conf', '--help',
+                     '-h', '--bash-autocomplete-helper', '--debug', '--silent', '--print', '--print-to-file']
+
+
+def list_separator(isForPrinting=False):
     if os.name == 'nt':
+        if isBash() and isForPrinting:
+            return ':'
         return ';'
     return ':'
 
@@ -170,10 +192,11 @@ class EnvVariable:
         self.values = []
 
     def isPath(self):
-        if self.value.startswith('-') or "=" in self.value:  # Hack, there's not an easy way to check if it's a path
+        v = fill_placeholders(self.value)
+        if v.startswith('-') or "=" in v:  # Hack, there's not an easy way to check if it's a path
             return False
 
-        return self.values or '/' in self.value or '\\' in self.value
+        return self.values or '/' in v or '\\' in v
 
 
 class Target:
@@ -394,6 +417,7 @@ def set_env_variable(key, value):
 
 def source_single_json(target):
     global _print_env_only, _is_debug
+
     for v in target.variables:
         if not v.name:
             continue
@@ -403,8 +427,13 @@ def source_single_json(target):
                 value = target.arg
             else:
                 value = fill_placeholders(v.value)
+
             if v.isPath():
-                value = to_native_path(value)
+                if _print_env_only:
+                    value = to_unix_path(value)
+                else:
+                    value = to_native_path(value)
+
             set_env_variable(v.name, value)
 
             if _is_debug:
@@ -414,13 +443,14 @@ def source_single_json(target):
             for list_token in v.values:
                 list_token = fill_placeholders(list_token)
                 if v.isPath():
-                    list_token = to_native_path(list_token)
-                value = value + list_separator() + list_token
+                    if _print_env_only:
+                        list_token = to_unix_path(list_token)
+                    else:
+                        list_token = to_native_path(list_token)
 
-            set_env_variable(v.name, value.strip(list_separator()))
+                value = value + list_separator(_print_env_only) + list_token
 
-            if _is_debug:
-                print("List: " + v.name + "=" + value.strip(list_separator()))
+            set_env_variable(v.name, value.strip(';').strip('.'))
 
 
 def source_single_file(filename):
@@ -556,6 +586,12 @@ def history_folder():
     return os.getenv('USE_HISTORY_FOLDER', '')
 
 
+def envFile():
+    if isWindows():
+        return "c:\\data\\use.env"
+    return "/tmp/use.env"
+
+
 def print_target(target):
     global _print_env_to_file, _silent
 
@@ -568,7 +604,7 @@ def print_target(target):
 
     # --print prints to stdout, while --print-to-file prints to file
     if _print_env_to_file:
-        with open("/tmp/use.env", "w") as f:
+        with open(envFile(), "w") as f:
             for line in _env_lines:
                 f.write(line + "\n")
     else:
