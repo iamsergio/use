@@ -63,7 +63,7 @@ def usePlatform():  # returns 'windows' or 'posix'
 
 
 def fill_placeholders(value):
-    placeholders = re.findall('\$\{(.*?)\}', value)  # searches for ${foo}
+    placeholders = re.findall('\\$\\{(.*?)\\}', value)  # searches for ${foo}
     for placeholder in placeholders:
         value = value.replace("${" + placeholder + "}", os.getenv(placeholder, ''))
 
@@ -83,6 +83,9 @@ def unix_to_native(path):
     if (path.lower().startswith("/c/") or path.lower() == "/c"):
         path = "C:" + path[2:]
         path = path.replace("/", "\\")
+    if (path.lower().startswith("/b/") or path.lower() == "/b"):
+        path = "B:" + path[2:]
+        path = path.replace("/", "\\")
     return path
 
 
@@ -97,6 +100,14 @@ def to_unix_path(path):
     if path.lower().startswith("c:"):
         path = path.replace("c:", "/c")
         path = path.replace("C:", "/C")
+        path = path.replace("\\", "/")
+
+    if path.lower().startswith("/b/"):
+        path = path.replace("\\", "/")
+
+    if path.lower().startswith("b:"):
+        path = path.replace("b:", "/b")
+        path = path.replace("B:", "/B")
         path = path.replace("\\", "/")
 
     return path
@@ -121,7 +132,7 @@ class UseConf:
         if isLinux():
             return '/data/windows-linux-shared/use_scripts'
         elif isWindows():
-            return 'c:\\data\\windows-linux-shared\\use_scripts'
+            return 'b:\\windows-linux-shared\\use_scripts'
         else:
             return '/Users/serj/data/windows-linux-shared/use_scripts'
 
@@ -129,7 +140,7 @@ class UseConf:
         if isLinux():
             return '/data/windows-linux-shared/use_scripts/posix'
         elif isWindows():
-            return 'c:\\data\\windows-linux-shared\\use_scripts\\windows'
+            return 'b:\\windows-linux-shared\\use_scripts\\windows'
         else:
             return '/Users/serj/data/windows-linux-shared/use_scripts/posix'
 
@@ -588,7 +599,7 @@ def history_folder():
 
 def envFile():
     if isWindows():
-        return "c:\\data\\use.env"
+        return "b:\\use.env"
     return "/tmp/use.env"
 
 
