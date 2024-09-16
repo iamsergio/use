@@ -463,7 +463,7 @@ def source_single_json(target):
 
             set_env_variable(v.name, value.strip(';').strip('.'))
 
-
+# Sources oldschool .source file, not .json
 def source_single_file(filename):
     global _silent
     command = ""
@@ -559,6 +559,11 @@ def run_shell(cwd):
 
     cmd = ""
     shell = shellForOS()
+
+    # modernize
+    if shell == "bash":
+        shell = "zsh"
+
     cmd = shell
 
     if _is_debug:
@@ -676,6 +681,7 @@ def reset_env():
     return source_target(getTarget("default"))
 
 
+# Sources target recursively and opens a shell
 def run_shell_for_target(target):
     global _switches, _rename_yakuake_tab, _desired_command, _desired_cwd
 
