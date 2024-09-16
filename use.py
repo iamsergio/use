@@ -664,6 +664,7 @@ def source_target(target):
     newCurTargets = ';'.join(currentTargets())
 
     set_env_variable('USE_CURRENT_TARGETS', newCurTargets + ";" + target.displayName())
+    set_env_variable('USE_CURRENT_TARGET', target.displayName())
 
     hist_folder = history_folder()
     if hist_folder and target.history:
