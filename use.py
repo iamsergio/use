@@ -222,7 +222,7 @@ class Target:
         self.variables = []
         self.arg = ""
         self.description = ""
-        self.history = False
+        self.history = True
 
         self.loadJson()
 
@@ -667,7 +667,7 @@ def source_target(target):
     set_env_variable('USE_CURRENT_TARGET', target.displayName())
 
     hist_folder = history_folder()
-    if hist_folder and target.history:
+    if hist_folder and target.history and not target.hidden:
         set_env_variable('HISTFILE', hist_folder + '/' + target.name + '.hist')
 
     for targetName in target.uses_after:
